@@ -1,0 +1,43 @@
+{
+  "workouts": [
+    {
+      "id": "2F05A6E7-4F12-42D5-9F53-94C4D044F111",
+      "planId": "9C1A900E-8403-4C9C-9A8B-23D9D0A4B5A1",
+      "date": "2025-05-26",
+      "title": "Upper — Strength A",
+      "status": "completed",
+      "totalSets": 24,
+      "totalReps": 140,
+      "totalVolumeKg": 8920,
+      "durationMinutes": 67,
+      "primaryMuscles": ["Chest", "Shoulders", "Triceps"],
+      "newPRs": true
+    },
+    {
+      "id": "7B3C4AD9-2E79-4B3E-A5D0-61F7E4D00C22",
+      "planId": "9C1A900E-8403-4C9C-9A8B-23D9D0A4B5A1",
+      "date": "2025-05-25",
+      "title": "Pull — Hypertrophy B",
+      "status": "completed",
+      "totalSets": 28,
+      "totalReps": 188,
+      "totalVolumeKg": 10340,
+      "durationMinutes": 74,
+      "primaryMuscles": ["Back", "Biceps", "Rear Delts"],
+      "newPRs": false
+    },
+    {
+      "id": "C6D98B44-36CF-47E3-9D8F-7525F9E70E33",
+      "planId": "9C1A900E-8403-4C9C-9A8B-23D9D0A4B5A1",
+      "date": "2025-05-28",
+      "title": "Lower — Strength C",
+      "status": "planned",
+      "totalSets": 20,
+      "totalReps": 110,
+      "totalVolumeKg": 11250,
+      "durationMinutes": 0,
+      "primaryMuscles": ["Quads", "Hamstrings", "Glutes"],
+      "newPRs": false
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+# .github/workflows/danger.yml
+# Gainz ▸ Continuous Code Review
+# Triggers Danger on every non-draft PR to uphold style, test coverage,
+# and architectural constraints before merge.
+
+name: CI / Danger
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+jobs:
+  danger:
+    name: Run Danger Checks
+    if: github.event.pull_request.draft == false
+    runs-on: macos-latest
+
+    steps:
+      # 1. Pull the PR’s head with history for diffing
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2      # Danger needs the previous commit
+
+      # 2. Set up Ruby (Danger runs via Ruby; bundler-cache accelerates cold CI)
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      # 3. Install Danger and any plugins (swiftlint plugin enforces style)
+      - name: Install Danger
+        run: |
+          gem install danger
+          gem install danger-swiftlint
+
+      # 4. Execute Dangerfile rules
+      - name: Danger Review
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          danger --fail-on-errors=true

@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "requestId": "b1d4e8f4-9d13-4a96-896c-2737a1d2a987",
+    "timestamp": "2025-05-27T02:00:00Z",
+    "apiVersion": "v1"
+  },
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMTIzNDUiLCJleHAiOjE2OTU3NjAwMDB9.q5O3nB8yQJkoyzQOThvO8Wgq9O1Y90KQ8tP3M_UXcHY",
+    "refreshToken": "rfs_Td8pYJxnQ2f73pK6zq4VbE1s9WaB0gU",
+    "expiresIn": 3600,
+    "tokenType": "Bearer",
+    "user": {
+      "id": "usr_12345",
+      "displayName": "Brody",
+      "email": "brody@gainz.app",
+      "avatarUrl": "https://cdn.gainz.app/avatars/usr_12345.png",
+      "roles": ["athlete"],
+      "onboarded": true
+    }
+  }
+}

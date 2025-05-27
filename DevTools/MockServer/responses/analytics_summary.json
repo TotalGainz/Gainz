@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0.0",
+  "summaryGeneratedAt": "2025-05-27T02:30:00Z",
+  "userId": "00000000-AAAA-BBBB-CCCC-000000000000",
+
+  "dateRange": {
+    "start": "2025-05-01",
+    "end": "2025-05-27"
+  },
+
+  "trainingTotals": {
+    "sessions": 17,
+    "sets": 386,
+    "reps": 5_462,
+    "tonnageKg": 106_352
+  },
+
+  "volumeByMuscleGroupKg": {
+    "chest": 12_840,
+    "back": 15_210,
+    "quadriceps": 22_400,
+    "hamstrings": 14_920,
+    "glutes": 10_100,
+    "shoulders": 8_360,
+    "biceps": 5_840,
+    "triceps": 5_680,
+    "calves": 4_002,
+    "abs": 1_000
+  },
+
+  "liftPRs": [
+    {
+      "exerciseId": "bench_press",
+      "exerciseName": "Barbell Bench Press",
+      "weightKg": 125,
+      "reps": 3,
+      "date": "2025-05-20"
+    },
+    {
+      "exerciseId": "squat",
+      "exerciseName": "Back Squat",
+      "weightKg": 180,
+      "reps": 2,
+      "date": "2025-05-14"
+    },
+    {
+      "exerciseId": "deadlift",
+      "exerciseName": "Conventional Deadlift",
+      "weightKg": 210,
+      "reps": 2,
+      "date": "2025-05-26"
+    },
+    {
+      "exerciseId": "overhead_press",
+      "exerciseName": "Standing Overhead Press",
+      "weightKg": 85,
+      "reps": 5,
+      "date": "2025-05-11"
+    }
+  ],
+
+  "e1RMCurrentKg": {
+    "benchPress": 137,
+    "squat": 192,
+    "deadlift": 224,
+    "overheadPress": 93
+  },
+
+  "weeklyVolumeTrendKg": [
+    { "weekISO": "2025-W18", "tonnageKg": 23_840 },
+    { "weekISO": "2025-W19", "tonnageKg": 24_960 },
+    { "weekISO": "2025-W20", "tonnageKg": 26_480 },
+    { "weekISO": "2025-W21", "tonnageKg": 27_072 }
+  ],
+
+  "intensityBucketsSets": {
+    "reps_1_5": 26,
+    "reps_6_8": 168,
+    "reps_9_12": 140,
+    "reps_13_20": 52
+  }
+}
