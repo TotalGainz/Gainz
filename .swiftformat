@@ -1,0 +1,53 @@
+####################################################################
+# Gainz — SwiftFormat configuration
+# Opinionated, Apple-style formatting with strict lint parity
+# across iOS, watchOS, and future multiplatform targets
+####################################################################
+
+# Core style
+swiftversion: 5.10
+indent: 4                                   # four-space indents
+allman: false                               # K&R brace style
+linebreaks: lf                              # Unix line endings
+allowInlineSemicolons: false
+commas: inline                              # trailing comma in multiline literals
+trailingCommas: always
+wraparguments: before-first                 # align first arg on new line
+wrapparameters: before-first
+wrapcollections: before-first
+ranges: spaced                              # `a ... b` (with spaces)
+hexLiteralCase: uppercase
+octalLiteralCase: lowercase
+stripunusedargs: closure-only               # keep explicit params in funcs
+redundantSelf: remove
+redundantType: remove
+sortImports: true
+importgrouping: testable-bottom             # `@testable` imports last
+blankLinesAtEndOfScope: 1
+markTypes: true                             # enforce // MARK: - on types
+
+# Rules toggle
+disable:
+  - sortedSwitchCases                       # preserve semantic order
+  - redundantReturn                         # early returns aid clarity
+  - consecutiveBlankLines                   # covered by blankLinesAtEndOfScope
+  - unusedOptionalBinding                   # defer to SwiftLint for diagnostics
+  - fileHeader                              # handled by corporate template
+
+# Insert module header if missing; ignored if header rule disabled
+header:
+  ignore: true
+
+# File ordering (extensions after main type)
+fileOrder:
+  - type
+  - extensions
+  - protocolConformances
+  - previewProviders
+
+# Preprocessor
+ifdefIndent: 4                              # align preprocessor blocks
+
+####################################################################
+# End of file
+####################################################################

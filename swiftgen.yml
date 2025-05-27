@@ -1,0 +1,62 @@
+
+###############################################################
+# Gainz — swiftgen.yml
+# One-click resource code-gen: images, colors, strings, fonts
+###############################################################
+
+# -------- Global defaults ------------------------------------
+input_dir: Sources          # keeps paths short & repo-portable
+output_dir: Generated       # single, tidy umbrella for build artifacts
+params:
+  publicAccess: true        # export symbols as public for SPM reuse
+
+# -------- XCAssets (images & named colors) -------------------
+xcassets:
+  inputs:
+    - DesignSystem/BrandAssets.xcassets
+    - DesignSystem/Illustrations.xcassets
+  outputs:
+    - templateName: swiftui         # native SwiftUI image/color structs
+      params:
+        ignoreTargetModule: true    # fixes SPM preview bundle lookup
+        forceProvidesNamespaces: true
+        forceFileNameEnum: true
+        colorStrategy: swiftui      # generates Color(...) not UIColor(...)
+      output: XCAssets+Generated.swift
+
+# -------- Colors (JSON palettes or .clr files) ---------------
+colors:
+  inputs:
+    - DesignSystem/ColorPalettes
+  outputs:
+    - templateName: swift5
+      params:
+        generateSwiftUI: true       # adds Color convenience wrappers
+      output: Colors+Generated.swift
+
+# -------- Fonts ----------------------------------------------
+fonts:
+  inputs:
+    - DesignSystem/Fonts
+  outputs:
+    - templateName: swift5
+      output: Fonts+Generated.swift
+
+# -------- Localised strings ----------------------------------
+strings:
+  inputs:
+    - Localization/en.lproj
+    - Localization/es.lproj
+  outputs:
+    - templateName: structured-swift5
+      params:
+        bundle: Bundle.module       # SPM-safe localisation lookup
+      output: Strings+Generated.swift
+
+# -------- Plists (for static config values) ------------------
+plist:
+  inputs:
+    - Configuration/AppConfig.plist
+  outputs:
+    - templateName: runtime-swift5
+      output: Config+Generated.swift

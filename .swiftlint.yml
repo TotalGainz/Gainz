@@ -1,0 +1,144 @@
+###############################################################################
+# Gainz — SwiftLint Configuration
+# Mission: enforce advanced, logical, world-class Swift code at all times
+###############################################################################
+
+# ---------------------------------------------------------------------------
+# Meta
+# ---------------------------------------------------------------------------
+swiftlint_version: 0.59.1        # lock behaviour across machines/CI
+swift_version: "5.10"
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+included:                         # lint only first-class source
+  - Gainz
+  - Sources
+  - Tests
+
+excluded:                         # skip generated / third-party stuff
+  - Carthage
+  - Pods
+  - build
+  - .build
+  - fastlane
+  - Scripts
+  - Documentation
+  - "**/*.generated.swift"
+
+# ---------------------------------------------------------------------------
+# Global thresholds
+# ---------------------------------------------------------------------------
+line_length:
+  warning: 120
+  error:   160
+  ignores_urls: true
+  ignores_comments: true
+  ignores_strings: true
+  ignores_function_declarations: true
+
+type_body_length:
+  warning: 300
+  error:   700
+  ignores_comments: true
+
+file_length:
+  warning: 400
+  error:   1000
+  ignore_comment_only_lines: true
+
+function_body_length:
+  warning: 40
+  error:   120
+  ignores_comments: true
+  ignores_closures: true
+
+cyclomatic_complexity:
+  ignores_case_statements: true
+  ignores_comments: true
+
+# ---------------------------------------------------------------------------
+# Rule sets
+# ---------------------------------------------------------------------------
+# 1) Opt-in rules we actively want
+opt_in_rules:
+  - anyobject_protocol
+  - array_init
+  - attributes
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_first_not_nil
+  - empty_string
+  - explicit_init
+  - explicit_top_level_acl
+  - fatal_error_message
+  - file_header
+  - first_where
+  - function_default_parameter_at_end
+  - high_order_functions_on_collection
+  - implicit_return
+  - nslocalizedstring_key
+  - ordered_imports
+  - override_in_extension
+  - prefer_self_type_over_type_of_self
+  - prefer_throws_over_rethrows
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - redundant_nil_init
+  - required_deinit
+  - single_test_class
+  - sorted_first_last
+  - strict_init
+  - test_case_accessibility
+  - unneeded_parentheses_in_closure_argument
+  - unused_declaration
+  - vertical_whitespace_closing_braces
+  - weak_delegate
+
+# 2) Rules that don’t suit Gainz’ style (disable)
+disabled_rules:
+  - trailing_newline            # handled by SwiftFormat
+  - identifier_name             # handled via custom conventions
+  - todo                        # replaced by custom no_todo rule
+  - discarded_notification_center_observer
+
+# ---------------------------------------------------------------------------
+# Custom rule definitions
+# ---------------------------------------------------------------------------
+custom_rules:
+
+  no_print:
+    name: "No print statements"
+    regex: "print\\s*\\("
+    message: "Use Swift’s Logger / os_log for diagnostics; never ship print()"
+    severity: warning
+
+  no_todo:
+    name: "Resolve TODOs"
+    regex: "(?i)\\bTODO[:\\s]"
+    message: "All TODOs must be resolved or ticketed before merge"
+    severity: error
+
+  no_force_cast:
+    name: "No force casts outside tests"
+    regex: "as!"
+    included: "^(?!.*Tests/).*\\.swift$"
+    message: "Replace force casts with safe optional casts (`as?`) or guard patterns"
+    severity: error
+
+# ---------------------------------------------------------------------------
+# Swift Analyzer Rules (SourceKit-based; slower but deeper)
+# ---------------------------------------------------------------------------
+analyzer_rules:
+  - explicit_self
+  - unused_import
+
+# ---------------------------------------------------------------------------
+# Reporters
+# ---------------------------------------------------------------------------
+reporter: "xcode, json"          # human-readable + CI-parsable
+

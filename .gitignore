@@ -1,0 +1,101 @@
+# ================================================================
+# Gainz — .gitignore
+# Tailored for a Swift-first, Xcode-driven iOS app that also
+# includes Swift Package Manager, Fastlane, CocoaPods/Carthage
+# (optional), Node tooling for future web targets, and CI scripts.
+# ================================================================
+
+# ────────────────────────────────────────────────────────────────
+# macOS system files
+# ────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon     
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ────────────────────────────────────────────────────────────────
+# Xcode & Swift artifacts
+# ────────────────────────────────────────────────────────────────
+build/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+
+# Keep the base workspace but drop user-specific data
+*.xcworkspace/xcuserdata
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Code coverage & debugging
+*.xccovreport
+*.xccovarchive
+*.dSYM.zip
+*.dSYM
+
+# ────────────────────────────────────────────────────────────────
+# Dependency managers (optional)
+# ────────────────────────────────────────────────────────────────
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+
+# ────────────────────────────────────────────────────────────────
+# Fastlane
+# ────────────────────────────────────────────────────────────────
+fastlane/report.xml
+fastlane/test_output/
+fastlane/screenshots/
+fastlane/Preview.html
+
+# ────────────────────────────────────────────────────────────────
+# Configuration & secrets
+# ────────────────────────────────────────────────────────────────
+*.env
+*.env.*
+*.key
+*.pem
+GoogleService-Info.plist
+Secrets.plist
+
+# ────────────────────────────────────────────────────────────────
+# Logs & temporary files
+# ────────────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.swp
+*.lock
+
+# ────────────────────────────────────────────────────────────────
+# Node / Web tooling (future desktop / Android builds)
+# ────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.cache/
+.tmp/
+npm-debug.log*
+yarn-error.log*
+
+# ────────────────────────────────────────────────────────────────
+# Miscellaneous
+# ────────────────────────────────────────────────────────────────
+.idea/                 # JetBrains project files
+*.orig                 # Merge conflict residues
+*.bak
+*~
