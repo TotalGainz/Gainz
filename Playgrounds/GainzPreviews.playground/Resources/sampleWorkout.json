@@ -1,0 +1,65 @@
+{
+  "id": "00000000-AAAA-BBBB-CCCC-000000000001",
+  "date": "2025-05-27T14:00:00Z",
+  "durationSeconds": 5400,
+  "sessionType": "Hypertrophy – Push",
+  "exercises": [
+    {
+      "exerciseId": "11111111-2222-3333-4444-555555555555",
+      "name": "Barbell Bench Press",
+      "primaryMuscle": "chest",
+      "equipment": "barbell",
+      "sets": [
+        { "setIndex": 1, "weightKg": 100.0, "reps": 10, "rpe": 7 },
+        { "setIndex": 2, "weightKg": 100.0, "reps": 10, "rpe": 8 },
+        { "setIndex": 3, "weightKg": 105.0, "reps": 8, "rpe": 9 }
+      ]
+    },
+    {
+      "exerciseId": "22222222-3333-4444-5555-666666666666",
+      "name": "Incline Dumbbell Press",
+      "primaryMuscle": "upperChest",
+      "equipment": "dumbbell",
+      "sets": [
+        { "setIndex": 1, "weightKg": 32.5, "reps": 12, "rpe": 7 },
+        { "setIndex": 2, "weightKg": 32.5, "reps": 10, "rpe": 8 },
+        { "setIndex": 3, "weightKg": 30.0, "reps": 12, "rpe": 8 }
+      ]
+    },
+    {
+      "exerciseId": "33333333-4444-5555-6666-777777777777",
+      "name": "Dumbbell Shoulder Press",
+      "primaryMuscle": "shoulders",
+      "equipment": "dumbbell",
+      "sets": [
+        { "setIndex": 1, "weightKg": 25.0, "reps": 12, "rpe": 7 },
+        { "setIndex": 2, "weightKg": 25.0, "reps": 10, "rpe": 8 },
+        { "setIndex": 3, "weightKg": 22.5, "reps": 12, "rpe": 8 }
+      ]
+    },
+    {
+      "exerciseId": "44444444-5555-6666-7777-888888888888",
+      "name": "Lateral Raise",
+      "primaryMuscle": "lateralDeltoid",
+      "equipment": "dumbbell",
+      "sets": [
+        { "setIndex": 1, "weightKg": 12.5, "reps": 15, "rpe": 7 },
+        { "setIndex": 2, "weightKg": 12.5, "reps": 15, "rpe": 8 },
+        { "setIndex": 3, "weightKg": 10.0, "reps": 20, "rpe": 8 }
+      ]
+    },
+    {
+      "exerciseId": "55555555-6666-7777-8888-999999999999",
+      "name": "Triceps Rope Push-down",
+      "primaryMuscle": "triceps",
+      "equipment": "cable",
+      "sets": [
+        { "setIndex": 1, "weightKg": 35.0, "reps": 15, "rpe": 7 },
+        { "setIndex": 2, "weightKg": 35.0, "reps": 15, "rpe": 8 },
+        { "setIndex": 3, "weightKg": 32.5, "reps": 18, "rpe": 8 }
+      ]
+    }
+  ],
+  "notes": "Focused on tempo; no shoulder discomfort. Increase incline press load next week."
+}
+
