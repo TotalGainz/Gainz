@@ -1,0 +1,55 @@
+//  Release.xcconfig
+//  Gainz — Hardened production settings for App Store builds
+
+//──────────────────────────────────────────
+// MARK: ❖ Swift Compiler
+//──────────────────────────────────────────
+SWIFT_VERSION                             = 5.9
+SWIFT_OPTIMIZATION_LEVEL                  = -Owholemodule     // highest-level, cross-module
+SWIFT_COMPILATION_MODE                    = wholemodule
+SWIFT_ACTIVE_COMPILATION_CONDITIONS       = RELEASE PROD
+ENABLE_TESTABILITY                        = NO
+SWIFT_SERIALIZE_DEBUGGING_OPTIONS         = NO
+SWIFT_TREAT_WARNINGS_AS_ERRORS            = YES               // keep CI strict in prod
+
+//──────────────────────────────────────────
+// MARK: ❖ Clang / Obj-C
+//──────────────────────────────────────────
+GCC_OPTIMIZATION_LEVEL                    = s                 // size-optimised
+GCC_PREPROCESSOR_DEFINITIONS              = $(inherited) NDEBUG=1
+GCC_TREAT_WARNINGS_AS_ERRORS              = YES
+
+//──────────────────────────────────────────
+// MARK: ❖ Linking & Runtime
+//──────────────────────────────────────────
+DEAD_CODE_STRIPPING                       = YES
+STRIP_INSTALLED_PRODUCT                   = YES
+ENABLE_BITCODE                            = NO
+OTHER_SWIFT_FLAGS                         = $(inherited) -static-stdlib
+
+//──────────────────────────────────────────
+// MARK: ❖ Debug Info & Sanitizers
+//──────────────────────────────────────────
+DEBUG_INFORMATION_FORMAT                  = dwarf-with-dsym
+GENERATE_PROFILING_CODE                   = NO
+ENABLE_NS_ASSERTIONS                      = NO
+
+//──────────────────────────────────────────
+// MARK: ❖ Code Signing & IDs
+//──────────────────────────────────────────
+PRODUCT_BUNDLE_IDENTIFIER                 = com.gainzapp
+CODE_SIGN_STYLE                           = Automatic
+PROVISIONING_PROFILE_SPECIFIER            = $(PROVISIONING_PROFILE_SPECIFIER)
+DEVELOPMENT_TEAM                          = YOUR_TEAM_ID
+
+//──────────────────────────────────────────
+// MARK: ❖ Info.plist & Resources
+//──────────────────────────────────────────
+INFOPLIST_FILE                            = Configs/InfoRelease.plist
+ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES
+
+//──────────────────────────────────────────
+// MARK: ❖ User-Defined Flags
+//──────────────────────────────────────────
+GAINZ_API_BASE_URL                        = https://api.gainz.app
+GAINZ_USE_MOCK_SERVER                     = NO

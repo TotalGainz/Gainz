@@ -1,0 +1,96 @@
+# Building a Mesocycle
+
+GainzKit ▸ Domain API Workshop
+
+> **Objective**
+> By the end of this hands‑on tutorial you will generate a fully‑periodised `MesocyclePlan` in fewer than 25 lines of Swift, understand its invariants, and learn how to query weekly muscle‑group volume. There are no HRV, recovery‑score, or bar‑velocity metrics anywhere in this flow—just clean hypertrophy logic.
+
+---
+
+## Prerequisites
+
+* Xcode 16 or later with Swift 5.10 toolchain
+* Gainz repo cloned and bootstrapped (`./Scripts/bootstrap.sh`)
+* Basic familiarity with Swift Package Manager and Combine (helpful but not required)
+
+---
+
+## 1 · Import the Domain layer
+
+All planning logic lives in the **platform‑agnostic Domain package**.
+
+```swift
+import Domain // Package name declared in PlatformAgnostic/Domain/Package.swift
+```
+
+## 2 · Describe the athlete
+
+Create a `UserProfile` to seed anthropometrics and training age.
+
+```swift
+let athlete = UserProfile(
+    id: UUID(),
+    height: Measurement(value: 175, unit: .centimeters),
+    currentWeight: Measurement(value: 82, unit: .kilograms),
+    trainingAge: 3 // years of consistent lifting
+)
+```
+
+## 3 · Configure a hypertrophy goal
+
+`HypertrophyGoal` aggregates dates, duration, and available training days.
+
+```swift
+let goal = HypertrophyGoal(
+    startDate: Date(),
+    weeks: 6,
+    availableDays: [ .monday, .wednesday, .friday, .saturday ]
+)
+```
+
+## 4 · Generate the mesocycle
+
+Instantiate `PlanGenerator`, pass the athlete and goal, and catch invariants.
+
+```swift
+let generator = PlanGenerator()
+let mesocycle = try generator.generate(for: athlete, goal: goal)
+```
+
+*`PlanGenerator` throws if the request violates evidence‑based volume ceilings or leaves a muscle completely untargeted. Adjust and retry until it succeeds.*
+
+## 5 · Inspect weekly muscle volume
+
+```swift
+let chestSetsWeek1 = mesocycle.weeks[0].volume(for: .chest)
+print("Week 1 planned chest sets: \(chestSetsWeek1)")
+```
+
+Volumes use **set‑points**, not HRV‑derived adjustments, to keep planning deterministic.
+
+## 6 · Persist the plan
+
+Persist via the repository abstraction so UI layers stay decoupled.
+
+```swift
+try WorkoutRepositoryImpl.shared.save(mesocycle)
+```
+
+`WorkoutRepositoryImpl` is a Core Data backed concrete that conforms to `WorkoutRepository`—inject a mock during tests.
+
+---
+
+## Challenge
+
+1. Re‑run generation with only three training days and observe how weekly set allocation shifts.
+2. Extend the plan to 12 weeks and verify deload weeks are inserted at week 7 and week 12.
+
+---
+
+## Next Steps
+
+* **Workout Logger Tutorial** – log a session against the mesocycle you just built.
+* **Analytics Dashboard Guide** – query strength PR trends derived from your logged sets (still HRV‑free!).
+
+> **Remember:** Gainz optimises *planned* volume. Recovery auto‑adjustments belong in separate analytics flows and never mutate the immutable `MesocyclePlan`.
+

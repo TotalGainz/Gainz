@@ -1,0 +1,56 @@
+```xcconfig
+//  Debug.xcconfig
+//  Gainz — “Swift-as-science” build settings for local development
+//  Any value here can be overridden per-target in project.yml.
+
+//──────────────────────────────────────────
+// MARK: ❖ Swift Compiler
+//──────────────────────────────────────────
+SWIFT_VERSION                             = 5.9
+SWIFT_OPTIMIZATION_LEVEL                  = -Onone          // fastest debug iteration
+SWIFT_ACTIVE_COMPILATION_CONDITIONS       = DEBUG DEV
+ENABLE_TESTABILITY                        = YES
+SWIFT_SERIALIZE_DEBUGGING_OPTIONS         = YES
+SWIFT_TREAT_WARNINGS_AS_ERRORS            = YES             // fail fast on slips
+
+//──────────────────────────────────────────
+// MARK: ❖ Clang / Obj-C
+//──────────────────────────────────────────
+GCC_OPTIMIZATION_LEVEL                    = 0
+GCC_PREPROCESSOR_DEFINITIONS              = $(inherited) DEBUG=1
+GCC_TREAT_WARNINGS_AS_ERRORS              = YES
+
+//──────────────────────────────────────────
+// MARK: ❖ Linking & Runtime
+//──────────────────────────────────────────
+ONLY_ACTIVE_ARCH                          = YES             // speed up simulator build
+ENABLE_BITCODE                            = NO
+OTHER_SWIFT_FLAGS                         = $(inherited) -DDEBUG
+
+//──────────────────────────────────────────
+// MARK: ❖ Debug Info & Sanitizers
+//──────────────────────────────────────────
+DEBUG_INFORMATION_FORMAT                  = dwarf-with-dsym
+ENABLE_ADDRESS_SANITIZER                  = NO              // toggle in scheme if needed
+ENABLE_THREAD_SANITIZER                   = NO
+ENABLE_UNDEFINED_BEHAVIOR_SANITIZER       = NO
+
+//──────────────────────────────────────────
+// MARK: ❖ Code Signing & IDs
+//──────────────────────────────────────────
+PRODUCT_BUNDLE_IDENTIFIER                 = com.gainzapp.debug
+CODE_SIGN_STYLE                           = Automatic
+DEVELOPMENT_TEAM                          = YOUR_TEAM_ID    // override via environment
+
+//──────────────────────────────────────────
+// MARK: ❖ Info.plist & Resources
+//──────────────────────────────────────────
+INFOPLIST_FILE                            = Configs/InfoDebug.plist
+ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES
+
+//──────────────────────────────────────────
+// MARK: ❖ User-Defined Flags (consumed in code)
+//──────────────────────────────────────────
+GAINZ_API_BASE_URL                        = https://api.dev.gainz.app
+GAINZ_USE_MOCK_SERVER                     = YES
+```
