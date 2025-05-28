@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "apiVersion": "1.0",
+    "generatedAt": "2025-05-27T15:03:12Z",
+    "environment": "stub"
+  },
+  "data": {
+    "mesocycle": {
+      "id": "3d3b1f9c-9cdd-4aab-a7ac-3cf8b0e2df72",
+      "goal": "hypertrophy",
+      "macrocycleWeek": 17,
+      "startDate": "2025-06-02",
+      "endDate": "2025-06-29",
+      "microcycles": [
+        {
+          "week": 1,
+          "workouts": [
+            {
+              "id": "14d42e67-45ad-4428-82b9-c0f2b7c1050a",
+              "name": "Push A",
+              "scheduledDate": "2025-06-02",
+              "exercisePlans": [
+                {
+                  "exerciseId": "benchpress-uuid",
+                  "sets": 3,
+                  "repRange": { "min": 8, "max": 12 },
+                  "targetRPE": 8,
+                  "restInterval": 120
+                },
+                {
+                  "exerciseId": "inclinedumbbellpress-uuid",
+                  "sets": 3,
+                  "repRange": { "min": 10, "max": 14 },
+                  "targetRPE": 9,
+                  "restInterval": 90
+                },
+                {
+                  "exerciseId": "lateralraise-uuid",
+                  "sets": 4,
+                  "repRange": { "min": 12, "max": 15 },
+                  "restInterval": 60
+                }
+              ]
+            },
+            {
+              "id": "b8b37c9c-74d4-4a19-80ed-ef2a1a52c5b6",
+              "name": "Pull A",
+              "scheduledDate": "2025-06-04",
+              "exercisePlans": [
+                {
+                  "exerciseId": "bentoverrow-uuid",
+                  "sets": 4,
+                  "repRange": { "min": 6, "max": 10 },
+                  "targetRPE": 8,
+                  "restInterval": 150
+                },
+                {
+                  "exerciseId": "latpulldown-uuid",
+                  "sets": 3,
+                  "repRange": { "min": 10, "max": 12 },
+                  "restInterval": 120
+                },
+                {
+                  "exerciseId": "facepull-uuid",
+                  "sets": 3,
+                  "repRange": { "min": 12, "max": 15 },
+                  "restInterval": 60
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

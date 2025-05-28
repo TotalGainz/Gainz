@@ -1,0 +1,596 @@
+[
+  {
+    "id": "bae8bc81-733a-5da7-bee3-06274077a2f6",
+    "name": "Flat Barbell Bench Press",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "eea1b674-9b3b-5aed-8361-a55accb56784",
+    "name": "Incline Barbell Bench Press",
+    "primaryMuscles": ["upperChest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "f5f25c3b-9005-5b75-a9ae-9294ba763d00",
+    "name": "Decline Barbell Bench Press",
+    "primaryMuscles": ["lowerChest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "81f68c1b-e711-5efd-a45c-bf2425667e79",
+    "name": "Flat Dumbbell Bench Press",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "f71fae55-f3bc-59d7-b7b1-debf6bfdcd78",
+    "name": "Incline Dumbbell Bench Press",
+    "primaryMuscles": ["upperChest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "b4ee6ddf-027f-5c40-b0c2-23838f285c86",
+    "name": "Decline Dumbbell Bench Press",
+    "primaryMuscles": ["lowerChest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "2c8b3b2b-837a-58cb-84c4-964b2f24fbb0",
+    "name": "Machine Chest Press",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "1b2abd9f-18cd-537c-9c49-208cf0decc8f",
+    "name": "Cable Chest Fly",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "c6f8af8a-53f7-56b8-bfa9-d022807c9b46",
+    "name": "Incline Cable Fly",
+    "primaryMuscles": ["upperChest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "2a5cfe5d-1466-5926-b2f0-4611a4b71fc4",
+    "name": "Decline Cable Fly",
+    "primaryMuscles": ["lowerChest"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "0783903f-4e70-524d-8a11-6131c17ae894",
+    "name": "Seated Barbell Overhead Press",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPush",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "d1c92c60-25ae-5570-9e60-68006457e7e7",
+    "name": "Standing Barbell Overhead Press",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPush",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "bd6cbea6-07f8-5d5d-99e6-2e2b5f3c6e55",
+    "name": "Seated Dumbbell Overhead Press",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPush",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "2d8d7b4d-6f54-5684-89a6-780fcf75ce82",
+    "name": "Standing Dumbbell Overhead Press",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPush",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "b1d2f3d3-e3a5-5429-b318-010ae27e524e",
+    "name": "Machine Shoulder Press",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPush",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "3247e1e3-ee90-5de2-9570-4d26cf6134c4",
+    "name": "Dumbbell Lateral Raise",
+    "primaryMuscles": ["lateralDelts"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "2d4c06e3-1a66-50b5-8e38-f37a7fb61a59",
+    "name": "Cable Lateral Raise",
+    "primaryMuscles": ["lateralDelts"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "335f1f7f-52db-5bb5-bdba-5c352e67a7fa",
+    "name": "Rear Delt Fly",
+    "primaryMuscles": ["rearDelts"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "d2b1efe4-5f8c-58bd-ac12-7fcf5829ac8e",
+    "name": "Face Pull",
+    "primaryMuscles": ["rearDelts"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "a303a393-4b14-56c9-9dd0-119f0c7a7d0e",
+    "name": "Front Raise",
+    "primaryMuscles": ["anteriorDelts"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "2c29658b-cfcd-50c7-8bf5-0edd587ab3fc",
+    "name": "Conventional Deadlift",
+    "primaryMuscles": ["back"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "hinge",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "7ca75ff9-d0c2-5a1f-b9a3-7843d729ad2b",
+    "name": "Sumo Deadlift",
+    "primaryMuscles": ["back"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "hinge",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "b2bc9854-f755-5252-a421-ae8a5510b50d",
+    "name": "Barbell Row",
+    "primaryMuscles": ["midBack"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "7555bb31-7e32-5c3c-9e99-d3c3361f2e35",
+    "name": "T-Bar Row",
+    "primaryMuscles": ["midBack"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "69c1c9c1-adf3-5597-82ce-a98c927e6c09",
+    "name": "Seated Cable Row",
+    "primaryMuscles": ["midBack"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "90a1b07e-93e8-52c7-9c33-9d7595d29977",
+    "name": "Single-Arm Dumbbell Row",
+    "primaryMuscles": ["lats"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "dumbbell",
+    "isUnilateral": true
+  },
+  {
+    "id": "8a5be1d9-0a7d-5a23-9032-3c43f96999d9",
+    "name": "Machine Row",
+    "primaryMuscles": ["midBack"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPull",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "271358a8-809b-5a48-80c8-bce7f41f8b21",
+    "name": "Lat Pulldown",
+    "primaryMuscles": ["lats"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPull",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "6b4f36c6-f41d-5d75-b359-e77efaa0b440",
+    "name": "Close-Grip Lat Pulldown",
+    "primaryMuscles": ["lats"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPull",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "bc8dc89b-420c-5bef-a1ef-2943bb04038c",
+    "name": "Pull-Up",
+    "primaryMuscles": ["lats"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPull",
+    "equipment": "bodyweight",
+    "isUnilateral": false
+  },
+  {
+    "id": "8b279894-496f-5b7e-8d9b-ce4cedb9e209",
+    "name": "Chin-Up",
+    "primaryMuscles": ["lats"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "verticalPull",
+    "equipment": "bodyweight",
+    "isUnilateral": false
+  },
+  {
+    "id": "22160d12-418d-50a3-b960-a971059bfbcd",
+    "name": "EZ-Bar Curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "811e0b9d-2182-54d5-8727-90e9387856ce",
+    "name": "Straight-Bar Curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "7795d4e1-3cf1-54e2-b173-41b71c479a27",
+    "name": "Dumbbell Curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "ba060630-2dc5-506c-a14c-30286aef9af9",
+    "name": "Hammer Curl",
+    "primaryMuscles": ["brachioradialis"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "f638ad32-3bbd-5c08-8117-90f47d204a22",
+    "name": "Cable Curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "0e2415a0-b441-5a82-8753-9f23829a529e",
+    "name": "Preacher Curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "a684f652-a872-55c6-b2a0-9fa021b6ecdf",
+    "name": "Concentration Curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": true
+  },
+  {
+    "id": "f352b423-9f5b-53b4-830d-b3f17a784e1b",
+    "name": "Close-Grip Bench Press",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "horizontalPush",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "80596052-4c3b-5c8d-bdc7-bbfaa25633b1",
+    "name": "Barbell Skullcrusher",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "4cb72b39-f5d6-540d-8477-2e65caada7f5",
+    "name": "EZ-Bar Skullcrusher",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "24e6a9ce-e19c-5387-a4f6-742251b350e1",
+    "name": "Dumbbell Skullcrusher",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "6824cb29-4087-52ac-bf34-f5de72b6bbe7",
+    "name": "Cable Triceps Pressdown",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "55b04755-59c5-52a0-8826-1335c8c5e4f2",
+    "name": "Overhead Cable Extension",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "cable",
+    "isUnilateral": false
+  },
+  {
+    "id": "ab2c33d4-86e8-53cd-a3e2-c3f8cafdf7e4",
+    "name": "Seated Overhead Triceps Extension",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "48424dd1-221f-5cd8-9f58-5953624e37c3",
+    "name": "Back Squat",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "squat",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "d7b43ca9-163e-5293-8fbb-5de370886921",
+    "name": "Front Squat",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "squat",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "f2c4bbe0-1b6b-55ce-aad3-0f36fa7c1953",
+    "name": "Hack Squat",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "squat",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "9838b97f-df5f-5a49-8d36-a3296ea53d04",
+    "name": "Leg Press",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "squat",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "5c3d34b4-19d2-5faa-899d-7e53b2abf112",
+    "name": "Walking Lunge",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "squat",
+    "equipment": "dumbbell",
+    "isUnilateral": true
+  },
+  {
+    "id": "811f8894-1af1-5f64-b914-9c08b3c847ce",
+    "name": "Bulgarian Split Squat",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "squat",
+    "equipment": "dumbbell",
+    "isUnilateral": true
+  },
+  {
+    "id": "341a24b9-d504-51f9-a7f9-aba8369d631c",
+    "name": "Leg Extension",
+    "primaryMuscles": ["quads"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "c66190c3-be4c-5ae9-a681-68ada2a1efaa",
+    "name": "Leg Curl",
+    "primaryMuscles": ["hamstrings"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "16551efc-4f6a-5e3b-aa01-1cd8d3c77dba",
+    "name": "Romanian Deadlift",
+    "primaryMuscles": ["hamstrings"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "hinge",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "5c9e6f73-1aa7-5e92-99d2-93614b1f9dee",
+    "name": "Good Morning",
+    "primaryMuscles": ["hamstrings"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "hinge",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "23419748-61ec-53d3-bb4a-1e9461a0cde1",
+    "name": "Glute Bridge",
+    "primaryMuscles": ["glutes"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "hinge",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "ac19e788-7685-5ca4-8f4f-3d5843ccfa6a",
+    "name": "Hip Thrust",
+    "primaryMuscles": ["glutes"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "hinge",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "1094f770-1ef3-5c16-b55f-ff4f18ac16f5",
+    "name": "Standing Calf Raise",
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "1e59c714-efb1-51f3-bb4e-8bfe4b4a929d",
+    "name": "Seated Calf Raise",
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "b9aa55e5-56d7-54d1-b3cb-106adee4e4c1",
+    "name": "Leg Press Calf Raise",
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "e9ad2d52-6b87-5b17-a95a-d3e7afb3e6f2",
+    "name": "Donkey Calf Raise",
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "e081d516-6b66-53b6-9b5b-788b0d7f8afd",
+    "name": "Barbell Shrug",
+    "primaryMuscles": ["traps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "2ae4b3c7-5d45-501b-9536-51e9f74465d8",
+    "name": "Dumbbell Shrug",
+    "primaryMuscles": ["traps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "dumbbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "6b2e4a21-4f8e-56f5-8572-358445213613",
+    "name": "Machine Shrug",
+    "primaryMuscles": ["traps"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "machine",
+    "isUnilateral": false
+  },
+  {
+    "id": "182dff5e-0a70-5afa-89d8-0eb0b47779bc",
+    "name": "Wrist Curl",
+    "primaryMuscles": ["forearms"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  },
+  {
+    "id": "4dbddf5e-3b59-558a-85b9-bf7b9238585f",
+    "name": "Reverse Wrist Curl",
+    "primaryMuscles": ["forearms"],
+    "secondaryMuscles": [],
+    "mechanicalPattern": "isolation",
+    "equipment": "barbell",
+    "isUnilateral": false
+  }
+]
