@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "unit": "bodyweight_multiplier",
+  "percentileToTier": {
+    "Novice":       { "max": 20 },
+    "Beginner":     { "min": 21, "max": 40 },
+    "Intermediate": { "min": 41, "max": 60 },
+    "Advanced":     { "min": 61, "max": 85 },
+    "Elite":        { "min": 86 }
+  },
+  "lifts": [
+    {
+      "id": "bench_press",
+      "displayName": "Flat Barbell Bench Press",
+      "exerciseIds": ["bae8bc81-733a-5da7-bee3-06274077a2f6"],
+      "muscleGroup": "Chest",
+      "weighting": 12,
+      "ratios": {
+        "male":   [0.50, 0.75, 1.00, 1.25, 1.50],
+        "female": [0.30, 0.50, 0.65, 0.85, 1.05]
+      }
+    },
+    {
+      "id": "incline_bench_press",
+      "displayName": "Incline Barbell Bench Press",
+      "exerciseIds": ["eea1b674-9b3b-5aed-8361-a55accb56784"],
+      "muscleGroup": "Upper Chest",
+      "weighting": 5,
+      "ratios": {
+        "male":   [0.45, 0.65, 0.85, 1.05, 1.25],
+        "female": [0.25, 0.35, 0.50, 0.65, 0.80]
+      }
+    },
+    {
+      "id": "back_squat",
+      "displayName": "Back Squat",
+      "exerciseIds": ["48424dd1-221f-5cd8-9f58-5953624e37c3"],
+      "muscleGroup": "Quads",
+      "weighting": 12,
+      "ratios": {
+        "male":   [0.70, 1.20, 1.50, 2.00, 2.50],
+        "female": [0.50, 0.80, 1.10, 1.50, 1.90]
+      }
+    },
+    {
+      "id": "front_squat",
+      "displayName": "Front Squat",
+      "exerciseIds": ["d7b43ca9-163e-5293-8fbb-5de370886921"],
+      "muscleGroup": "Quads",
+      "weighting": 6,
+      "ratios": {
+        "male":   [0.55, 0.90, 1.20, 1.60, 2.00],
+        "female": [0.40, 0.60, 0.85, 1.20, 1.60]
+      }
+    },
+    {
+      "id": "hack_squat",
+      "displayName": "Hack Squat",
+      "exerciseIds": ["f2c4bbe0-1b6b-55ce-aad3-0f36fa7c1953"],
+      "muscleGroup": "Quads",
+      "weighting": 5,
+      "ratios": {
+        "male":   [1.00, 1.50, 2.00, 2.50, 3.00],
+        "female": [0.80, 1.10, 1.40, 1.90, 2.40]
+      }
+    },
+    {
+      "id": "conventional_deadlift",
+      "displayName": "Conventional Deadlift",
+      "exerciseIds": ["2c29658b-cfcd-50c7-8bf5-0edd587ab3fc"],
+      "muscleGroup": "Back",
+      "weighting": 12,
+      "ratios": {
+        "male":   [0.90, 1.40, 1.80, 2.20, 2.70],
+        "female": [0.60, 0.90, 1.20, 1.60, 2.00]
+      }
+    },
+    {
+      "id": "sumo_deadlift",
+      "displayName": "Sumo Deadlift",
+      "exerciseIds": ["7ca75ff9-d0c2-5a1f-b9a3-7843d729ad2b"],
+      "muscleGroup": "Back",
+      "weighting": 6,
+      "ratios": {
+        "male":   [0.85, 1.30, 1.70, 2.10, 2.60],
+        "female": [0.55, 0.85, 1.15, 1.55, 1.95]
+      }
+    },
+    {
+      "id": "romanian_deadlift",
+      "displayName": "Romanian Deadlift",
+      "exerciseIds": ["16551efc-4f6a-5e3b-aa01-1cd8d3c77dba"],
+      "muscleGroup": "Hamstrings",
+      "weighting": 6,
+      "ratios": {
+        "male":   [0.60, 0.90, 1.20, 1.60, 2.00],
+        "female": [0.40, 0.60, 0.90, 1.20, 1.60]
+      }
+    },
+    {
+      "id": "overhead_press",
+      "displayName": "Standing Barbell Overhead Press",
+      "exerciseIds": ["d1c92c60-25ae-5570-9e60-68006457e7e7"],
+      "muscleGroup": "Delts",
+      "weighting": 8,
+      "ratios": {
+        "male":   [0.30, 0.50, 0.65, 0.80, 1.00],
+        "female": [0.20, 0.30, 0.40, 0.55, 0.70]
+      }
+    },
+    {
+      "id": "barbell_row",
+      "displayName": "Barbell Row",
+      "exerciseIds": ["b2bc9854-f755-5252-a421-ae8a5510b50d"],
+      "muscleGroup": "Mid Back",
+      "weighting": 8,
+      "ratios": {
+        "male":   [0.60, 0.90, 1.20, 1.60, 2.00],
+        "female": [0.40, 0.60, 0.80, 1.10, 1.40]
+      }
+    },
+    {
+      "id": "hip_thrust",
+      "displayName": "Hip Thrust",
+      "exerciseIds": ["ac19e788-7685-5ca4-8f4f-3d5843ccfa6a"],
+      "muscleGroup": "Glutes",
+      "weighting": 6,
+      "ratios": {
+        "male":   [0.60, 1.00, 1.30, 1.70, 2.20],
+        "female": [0.40, 0.60, 0.85, 1.20, 1.60]
+      }
+    },
+    {
+      "id": "ez_bar_curl",
+      "displayName": "EZ-Bar Curl",
+      "exerciseIds": ["22160d12-418d-50a3-b960-a971059bfbcd"],
+      "muscleGroup": "Biceps",
+      "weighting": 2,
+      "ratios": {
+        "male":   [0.25, 0.35, 0.50, 0.65, 0.80],
+        "female": [0.15, 0.25, 0.35, 0.45, 0.55]
+      }
+    },
+    {
+      "id": "barbell_skullcrusher",
+      "displayName": "Barbell Skullcrusher",
+      "exerciseIds": ["80596052-4c3b-5c8d-bdc7-bbfaa25633b1"],
+      "muscleGroup": "Triceps",
+      "weighting": 2,
+      "ratios": {
+        "male":   [0.25, 0.35, 0.50, 0.65, 0.80],
+        "female": [0.15, 0.25, 0.35, 0.45, 0.55]
+      }
+    },
+    {
+      "id": "standing_calf_raise",
+      "displayName": "Standing Calf Raise",
+      "exerciseIds": ["1094f770-1ef3-5c16-b55f-ff4f18ac16f5"],
+      "muscleGroup": "Calves",
+      "weighting": 2,
+      "ratios": {
+        "male":   [0.45, 0.65, 0.85, 1.05, 1.25],
+        "female": [0.30, 0.45, 0.60, 0.75, 0.90]
+      }
+    },
+    {
+      "id": "leg_press",
+      "displayName": "Leg Press",
+      "exerciseIds": ["9838b97f-df5f-5a49-8d36-a3296ea53d04"],
+      "muscleGroup": "Quads",
+      "weighting": 6,
+      "ratios": {
+        "male":   [1.00, 1.50, 2.00, 2.50, 3.00],
+        "female": [0.80, 1.10, 1.50, 1.90, 2.40]
+      }
+    }
+  ],
+  "compositeTSS": {
+    "method": "weighted_mean",
+    "weights": {
+      "bench_press": 12,
+      "incline_bench_press": 5,
+      "back_squat": 12,
+      "front_squat": 6,
+      "hack_squat": 5,
+      "conventional_deadlift": 12,
+      "sumo_deadlift": 6,
+      "romanian_deadlift": 6,
+      "overhead_press": 8,
+      "barbell_row": 8,
+      "hip_thrust": 6,
+      "ez_bar_curl": 2,
+      "barbell_skullcrusher": 2,
+      "standing_calf_raise": 2,
+      "leg_press": 6
+    },
+    "recalcIntervalHours": 24
+  },
+  "source": {
+    "name": "Strength Level dataset (offline snapshot)",
+    "url": "https://strengthlevel.com/",
+    "snapshotDate": "2025-06-05"
+  }
+}
