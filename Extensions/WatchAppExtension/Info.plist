@@ -1,5 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+  <!-- Core identity -->
+  <key>CFBundleIdentifier</key>          <string>com.gainzapp.watchkitextension</string>
+  <key>CFBundleDisplayName</key>         <string>Gainz Watch ⌚︎</string>
+  <key>CFBundleShortVersionString</key>  <string>1.0</string>
+  <key>CFBundleVersion</key>             <string>1</string>
+
+  <!-- Extension registration -->
+  <key>NSExtension</key>
+  <dict>
+    <key>NSExtensionPointIdentifier</key>    <string>com.apple.watchkit</string>
+    <key>NSExtensionPrincipalClass</key>     <string>$(PRODUCT_MODULE_NAME).ExtensionDelegate</string>
+    <key>NSExtensionAttributes</key>
+    <dict>
+      <!-- Must match the WatchApp’s bundle ID -->
+      <key>WKAppBundleIdentifier</key>       <string>com.gainzapp.watchapp</string>
+    </dict>
+  </dict>
+
+  <!-- Deep-link support (isolated to watch builds) -->
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeRole</key>            <string>Viewer</string>
+      <key>CFBundleURLName</key>             <string>com.gainzapp.watchkitextension</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>gainz-watch</string>
+      </array>
+    </dict>
+  </array>
+
+  <key>LSApplicationQueriesSchemes</key>
+  <array>
+    <string>gainz-watch</string>
+  </array>
+</dict>
 </plist>

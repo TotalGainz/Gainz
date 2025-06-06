@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+  <key>CFBundleIdentifier</key><string>com.gainzapp.debug</string>
+  <key>CFBundleDisplayName</key><string>$(PRODUCT_NAME) 🛠</string>
+  <key>CFBundleURLTypes</key><array><dict>
+    <key>CFBundleTypeRole</key><string>Editor</string>
+    <key>CFBundleURLName</key><string>com.gainzapp.debug</string>
+    <key>CFBundleURLSchemes</key><array><string>gainz-debug</string></array>
+  </dict></array>
+  <key>LSApplicationQueriesSchemes</key>
+  <array><string>gainz-debug</string><string>widget-preview</string></array>
+  <key>GainzDebugFlags</key>
+  <dict><key>MockServerEnabled</key><true/><key>VerboseLogging</key><true/></dict>
+</dict>
 </plist>

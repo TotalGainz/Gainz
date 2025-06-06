@@ -1,5 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<!-- Core bundle metadata -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Gainz Siri</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+
+	<!-- Siri Intents extension declaration -->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.intentservice</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).IntentHandler</string>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<!-- Custom intent(s) supported by this extension -->
+			<key>IntentsSupported</key>
+			<array>
+				<string>StartNextWorkoutIntent</string>
+			</array>
+			<!-- Restrict use while locked / data-unavailable for privacy -->
+			<key>IntentsRestrictedWhileLocked</key>
+			<array>
+				<string>StartNextWorkoutIntent</string>
+			</array>
+			<key>IntentsRestrictedWhileProtectedDataUnavailable</key>
+			<array>
+				<string>StartNextWorkoutIntent</string>
+			</array>
+		</dict>
+	</dict>
+
+	<!-- Stub storyboard suppressed (no UI) -->
+	<key>UILaunchStoryboardName</key>
+	<string></string>
+</dict>
 </plist>

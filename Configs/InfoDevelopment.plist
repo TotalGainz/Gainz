@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>        <string>com.gainzapp.dev</string>
+  <key>CFBundleDisplayName</key>       <string>$(PRODUCT_NAME) 🧪</string>
+
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeRole</key>      <string>Editor</string>
+      <key>CFBundleURLName</key>       <string>com.gainzapp.dev</string>
+      <key>CFBundleURLSchemes</key>
+      <array><string>gainz-dev</string></array>
+    </dict>
+  </array>
+
+  <key>LSApplicationQueriesSchemes</key>
+  <array>
+    <string>gainz-dev</string>
+    <string>widget-preview</string>
+  </array>
+
+  <key>GainzDevFlags</key>
+  <dict>
+    <key>StagingServerEnabled</key>    <true/>
+    <key>VerboseLogging</key>          <false/>
+    <key>ShowUITestOverlays</key>      <true/>
+  </dict>
+</dict>
+</plist>
