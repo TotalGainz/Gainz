@@ -1,19 +1,4 @@
-//
-//  CoachingDrawerView.swift
-//  Features › Planner › Components
-//
-//  Sliding drawer that surfaces context-aware coaching tips
-//  while the athlete is arranging their weekly mesocycle.
-//
-//  ──────────────────────────────────────────────────────────────
-//  • Pure SwiftUI; no UIKit.
-//  • Dark-mode first, pulls colors & typography from DesignSystem.
-//  • No HRV, recovery, or velocity content—only hypertrophy guidance.
-//  • Uses a spring drag gesture for interactive open/close.
-//  • Prepared for localisation via SwiftGen `L10n`.
-//
-//  Created for Gainz on 27 May 2025.
-//
+// CoachingDrawerView.swift
 
 import SwiftUI
 import Combine
@@ -21,9 +6,10 @@ import DesignSystem     // Color & typography tokens
 
 // MARK: - ViewModel
 
+/// ViewModel for the coaching tips drawer, managing tip content and open/close state.
 public final class CoachingDrawerViewModel: ObservableObject {
     @Published public var tips: [String] = []
-    @Published public var isOpen: Bool   = false
+    @Published public var isOpen: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
     private let tipProvider: TipProviderProtocol
@@ -34,6 +20,7 @@ public final class CoachingDrawerViewModel: ObservableObject {
     }
 
     private func bind() {
+        // Subscribe to the provider's tips stream and update our tips.
         tipProvider.tipsPublisher
             .receive(on: DispatchQueue.main)
             .assign(to: \.tips, on: self)
@@ -53,12 +40,12 @@ public protocol TipProviderProtocol {
 
 // MARK: - View
 
+/// A sliding drawer view that displays context-aware coaching tips during mesocycle planning.
 public struct CoachingDrawerView: View {
-
     @ObservedObject private var viewModel: CoachingDrawerViewModel
     @GestureState private var dragOffset: CGFloat = 0
 
-    // Drawer height when open
+    // Drawer height when fully open
     private let openHeight: CGFloat = 240
 
     public init(viewModel: CoachingDrawerViewModel) {
@@ -88,11 +75,12 @@ public struct CoachingDrawerView: View {
             )
             .edgesIgnoringSafeArea(.bottom)
         }
-        .accessibility(identifier: "coachingDrawer")
+        .accessibilityIdentifier("coachingDrawer")
     }
 
     // MARK: - Sub-views
 
+    // The draggable handle bar at the top of the drawer
     private var handleBar: some View {
         Capsule()
             .fill(DesignSystem.Color.onSurfaceSecondary.opacity(0.4))
@@ -102,6 +90,7 @@ public struct CoachingDrawerView: View {
             .onTapGesture { viewModel.toggle() }
     }
 
+    // List of coaching tips
     private var tipsList: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 12) {
@@ -128,49 +117,57 @@ public struct CoachingDrawerView: View {
     private func dragGesture(in geo: GeometryProxy) -> some Gesture {
         DragGesture(minimumDistance: 10, coordinateSpace: .global)
             .updating($dragOffset) { value, state, _ in
-                let raw = value.translation.height
-                state = viewModel.isOpen ? max(raw, 0) : min(raw, 0)
+                let dragAmount = value.translation.height
+                // Allow dragging down when open, or dragging up when closed
+                state = viewModel.isOpen ? max(dragAmount, 0) : min(dragAmount, 0)
             }
             .onEnded { value in
                 let threshold = openHeight / 3
                 if viewModel.isOpen {
-                    if value.translation.height > threshold { viewModel.isOpen = false }
+                    // If dragged down beyond threshold, close the drawer
+                    if value.translation.height > threshold {
+                        viewModel.isOpen = false
+                    }
                 } else {
-                    if -value.translation.height > threshold { viewModel.isOpen = true }
+                    // If dragged up beyond threshold, open the drawer
+                    if -value.translation.height > threshold {
+                        viewModel.isOpen = true
+                    }
                 }
             }
     }
 
     private func currentOffset(in geo: GeometryProxy) -> CGFloat {
-        let closedY = geo.size.height + 12   // Hidden just off-screen
-        let openY   = geo.size.height - openHeight
-        let base    = viewModel.isOpen ? openY : closedY
-        return base + dragOffset
+        // Closed position just off the bottom of the screen
+        let closedY = geo.size.height + 12
+        // Open position: drawer's top aligned at desired height from bottom
+        let openY = geo.size.height - openHeight
+        // Base offset depending on open/closed state, plus any drag offset
+        let baseY = viewModel.isOpen ? openY : closedY
+        return baseY + dragOffset
     }
 }
 
 // MARK: - Previews
 
 #if DEBUG
-import SwiftUI
+private final class MockTipProvider: TipProviderProtocol {
+    let tipsPublisher = Just<[String]>([
+        "Aim for 8-12 reps at RPE 8 for optimal hypertrophy.",
+        "Keep rest ~90s on accessory lifts for more density.",
+        "Progressive overload: add weight, or sets, or reps gradually."
+    ]).eraseToAnyPublisher()
+}
 
 struct CoachingDrawerView_Previews: PreviewProvider {
     static var previews: some View {
         let vm = CoachingDrawerViewModel(tipProvider: MockTipProvider())
-        vm.tips = [
-            "Aim for 8-12 reps at RPE 8 for prime hypertrophy stimulus.",
-            "Keep rest to ~90 s on accessory lifts to maximise density.",
-            "Progressive overload ≠ add weight every session—use sets or reps too."
-        ]
+        vm.isOpen = true
         return ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
             CoachingDrawerView(viewModel: vm)
         }
         .preferredColorScheme(.dark)
-    }
-
-    private final class MockTipProvider: TipProviderProtocol {
-        let tipsPublisher = Just<[String]>([]).eraseToAnyPublisher()
     }
 }
 #endif

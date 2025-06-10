@@ -1,106 +1,79 @@
-//
-//  WorkoutPlan.swift
-//  Domain – Models
-//
-//  Blueprint for a single workout inside a MesocyclePlan.
-//  Pure value type; no UIKit, Combine, or persistence logic.
-//
-//  ──────────────────── Design Invariants ────────────────────
-//  • Immutable once created; every field is let-bound.
-//  • No HRV, recovery metrics, or bar-velocity prescriptions.
-//  • Codable + Hashable so plans round-trip via JSON / Core Data.
-//  • Integrates cleanly with MesocyclePlan and WorkoutSession.
-//
-//  Created for Gainz by the Core Domain team on 27 May 2025.
-//
+/// WorkoutPlan.swift
 
 import Foundation
 
-// MARK: - WorkoutPlan
-
-/// A forward-looking prescription that tells the athlete **what to do**
-/// in a given session, before any weights are actually lifted.
+/// A forward-looking prescription for a single workout session.
 ///
-/// At runtime, the UI shows the `ExercisePrescription`s in order and the
-/// athlete logs real weights/reps into a `WorkoutSession`, referencing the
-/// same `exerciseId`s. This keeps plan vs. actual data cleanly separated.
-public struct WorkoutPlan: Identifiable, Hashable, Codable {
+/// A `WorkoutPlan` outlines all exercises (with sets and reps targets) that the athlete should perform on a given day.
+/// It is typically part of a larger `MesocyclePlan`.
+public struct WorkoutPlan: Identifiable, Hashable, Codable, Sendable {
+    // MARK: Core Fields
 
-    // Stable identifier for cross-ref within a MesocyclePlan.
+    /// Unique identifier for this workout plan.
     public let id: UUID
-
-    /// Human-readable name shown in the Planner (e.g., “Push A”).
-    public let title: String
-
-    /// Week index inside the mesocycle, 0-based.
+    /// Descriptive name of the workout (e.g., "Push Day A").
+    public let name: String
+    /// Week index (0-based) within the mesocycle when this workout occurs.
     public let week: Int
-
-    /// Day index within the week, 0 = Monday (ISO-8601).
+    /// Day index within the week (0 = Monday, 6 = Sunday, if applicable).
     public let dayOfWeek: Int
-
-    /// Ordered list of exercise prescriptions.
+    /// Ordered list of exercise prescriptions for this workout.
     public let exercises: [ExercisePrescription]
 
-    // MARK: Derived Convenience
+    // MARK: Derived
 
+    /// Total number of planned sets in this workout (summing all exercises).
     public var totalSets: Int {
         exercises.reduce(0) { $0 + $1.sets }
     }
 
-    // MARK: Init & Validation
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
-        title: String,
+        id: UUID = UUID(),
+        name: String,
         week: Int,
         dayOfWeek: Int,
         exercises: [ExercisePrescription]
     ) {
-        precondition(!title.isEmpty, "Workout title must not be empty.")
+        precondition(!name.isEmpty, "WorkoutPlan name must not be empty.")
         precondition(week >= 0, "Week index must be non-negative.")
-        precondition((0...6).contains(dayOfWeek), "dayOfWeek must be 0…6 (ISO weekday).")
-        precondition(!exercises.isEmpty, "A workout needs at least one exercise.")
-
+        precondition((0...6).contains(dayOfWeek), "dayOfWeek must be 0–6 (0 = Monday).")
+        precondition(!exercises.isEmpty, "WorkoutPlan must contain at least one exercise.")
         self.id = id
-        self.title = title
+        self.name = name
         self.week = week
         self.dayOfWeek = dayOfWeek
         self.exercises = exercises
     }
 }
 
-// MARK: - ExercisePrescription
-
-/// Immutable instruction set for a single movement **before execution**.
-public struct ExercisePrescription: Hashable, Codable {
-
-    /// References an `Exercise.id` in the global catalog.
+/// Immutable instruction set for a single exercise within a `WorkoutPlan` (prior to execution).
+public struct ExercisePrescription: Hashable, Codable, Sendable {
+    /// Identifier of the `Exercise` to perform.
     public let exerciseId: UUID
-
-    /// Planned number of sets to perform.
+    /// Planned number of sets to perform for this exercise in the workout.
     public let sets: Int
-
-    /// Planned rep target (e.g., 8-12). Use closed range for flexibility.
-    public let repRange: ClosedRange<Int>
-
-    /// Optional RIR target to guide subjective effort.
+    /// Target repetition range for each set (inclusive range).
+    public let repRange: RepRange
+    /// Target Reps-in-Reserve (RIR) for each set (guiding effort level). Optional.
     public let targetRIR: Int?
-
-    /// Optional %1RM guideline; mutually exclusive with RIR/RPE in UI.
+    /// Target percentage of 1RM for each set. Optional (mutually exclusive with RIR/RPE targets).
     public let percent1RM: Double?
 
     public init(
         exerciseId: UUID,
         sets: Int,
-        repRange: ClosedRange<Int>,
+        repRange: RepRange,
         targetRIR: Int? = nil,
         percent1RM: Double? = nil
     ) {
-        precondition(sets > 0, "Sets must be greater than zero.")
-        precondition(!repRange.isEmpty, "repRange must not be empty.")
+        precondition(sets > 0, "Sets must be > 0.")
+        if let rir = targetRIR {
+            precondition((0...4).contains(rir), "targetRIR must be between 0 and 4.")
+        }
         if let percent = percent1RM {
-            precondition((0...100).contains(percent),
-                         "percent1RM must be 0–100.")
+            precondition((0...100).contains(percent), "percent1RM must be between 0 and 100.")
         }
         self.exerciseId = exerciseId
         self.sets = sets

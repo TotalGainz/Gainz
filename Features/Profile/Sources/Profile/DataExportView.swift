@@ -1,4 +1,3 @@
-//
 //  DataExportView.swift
 //  Gainz – Profile Feature
 //
@@ -8,8 +7,8 @@
 //  CSV or JSON, surfaced through the system share sheet.
 //
 //  References:
-//  – Privacy & data-export requirement in spec (DataExportView). explanation for o3 (UPDATED).txt](file-service://file-CnLa5rmYAZJgvi98KEwAKv)
-//  – MVVM pattern & ExportDataUseCase outlined in repo docs.explanation for o3 (UPDATED).txt](file-service://file-CnLa5rmYAZJgvi98KEwAKv)
+//  – Privacy & data-export requirement in spec (DataExportView). [oai_citation:0‡repo explanation for o3 (UPDATED).txt](file-service://file-CnLa5rmYAZJgvi98KEwAKv)
+//  – MVVM pattern & ExportDataUseCase outlined in repo docs. [oai_citation:1‡repo explanation for o3 (UPDATED).txt](file-service://file-CnLa5rmYAZJgvi98KEwAKv)
 //
 //  HRV / velocity tracking intentionally excluded per product scope.
 //
@@ -75,6 +74,7 @@ public struct DataExportView: View {
             }
         }
         .navigationTitle("Export Data")
+        // Present share sheet to export file when ready
         .fileExporter(
             isPresented: $viewModel.showExporter,
             document: viewModel.document,
@@ -83,6 +83,7 @@ public struct DataExportView: View {
         ) { result in
             viewModel.handleExporterCompletion(result)
         }
+        // Show alert on export failure
         .alert("Export Failed",
                isPresented: $viewModel.showError,
                actions: { Button("OK", role: .cancel) { } },
@@ -166,7 +167,6 @@ struct ExportDocument: FileDocument {
 #if DEBUG
 import PreviewKit
 
-extension ExportDataUseCaseProtocol where Self == PreviewExportUseCase {}
 struct DataExportView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {

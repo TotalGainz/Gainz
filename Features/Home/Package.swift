@@ -1,29 +1,9 @@
-// swift-tools-version: 5.9
-//
-//  package.swift
-//  Features/Home
-//
-//  Stand-alone SwiftPM module for the “Home” tab.
-//  Ships as a library so the root app target can link it,
-//  and as a test target for isolated ViewModel + snapshot tests.
-//
-//  Dependencies
-//  ────────────
-//  • Domain          – pure business logic & models
-//  • CoreUI          – typography, colors, ButtonStyle, etc.
-//  • FeatureSupport  – utilities like UnitConversion, DateFormatters
-//
-//  Platforms
-//  ─────────
-//  • iOS 17+        – primary deployment
-//  • watchOS 10+    – (future) for glance widgets
-//  • visionOS 1.0+  – (future) panoramic dashboard
-//
+// swift-tools-version: 5.10
 
 import PackageDescription
 
 let package = Package(
-    name: "HomeFeature",
+    name: "Home",
     defaultLocalization: "en",
     platforms: [
         .iOS(.v17),
@@ -32,35 +12,36 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "HomeFeature",
-            targets: ["HomeFeature"]
+            name: "Home",
+            type: .dynamic,
+            targets: ["Home"]
         )
     ],
     dependencies: [
-        .package(path: "../../PlatformAgnostic/Domain"),
+        .package(path: "../../Modules/Domain"),
         .package(path: "../../Modules/CoreUI"),
-        .package(path: "../../Modules/FeatureSupport")
+        .package(path: "../../Modules/FeatureSupport"),
+        .package(path: "../../Modules/FeatureInterfaces"),
+        .package(path: "../../Modules/AnalyticsService")
     ],
     targets: [
-        // Main feature target
         .target(
-            name: "HomeFeature",
+            name: "Home",
             dependencies: [
                 "Domain",
                 "CoreUI",
-                "FeatureSupport"
+                "FeatureSupport",
+                "FeatureInterfaces",
+                "AnalyticsService"
             ],
             path: "Sources",
             swiftSettings: [
-                // Treat warnings as errors for strict hygiene
                 .unsafeFlags(["-warnings-as-errors"])
             ]
         ),
-
-        // Unit & snapshot tests
         .testTarget(
-            name: "HomeFeatureTests",
-            dependencies: ["HomeFeature"],
+            name: "HomeTests",
+            dependencies: ["Home"],
             path: "Tests"
         )
     ]

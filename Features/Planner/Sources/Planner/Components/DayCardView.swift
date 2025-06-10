@@ -3,23 +3,22 @@
 //  PlannerFeature
 //
 //  Visual card for a single calendar day in the Planner grid.
-//
-//  • Shows date, planned workout title (if any), total set count.
-//  • Uses CoreUI tokens for typography, gradient, and interaction style.
-//  • Taps bubble up via onTap closure so parent Coordinator handles routing.
-//  • No HRV, recovery, or velocity data.
+//  • Shows date, planned workout title (if any), and total set count.
+//  • Uses CoreUI tokens for consistent colors, fonts, and shadows.
+//  • Taps bubble up via onTap closure so parent Coordinator can handle navigation.
+//  • No HRV, recovery, or velocity data shown (hypertrophy focus).
 //
 //  Created for Gainz on 27 May 2025.
 //
 
 import SwiftUI
-import Domain           // MesocyclePlan, WorkoutSession
+import Domain           // MesocyclePlan, WorkoutSession models
 import CoreUI           // Color tokens, fonts
 
 // MARK: - ViewModel
 
 public struct DayCardViewModel: Identifiable, Equatable {
-    public let id: UUID          // stable per day
+    public let id: UUID          // stable unique identifier (one per day)
     public let date: Date
     public let workoutTitle: String?
     public let plannedSets: Int
@@ -40,7 +39,6 @@ public struct DayCardViewModel: Identifiable, Equatable {
 // MARK: - View
 
 public struct DayCardView: View {
-
     // MARK: Input
     public let model: DayCardViewModel
     public let onTap: (DayCardViewModel) -> Void
@@ -49,8 +47,8 @@ public struct DayCardView: View {
     private var isToday: Bool {
         Calendar.current.isDateInToday(model.date)
     }
-
     private var dateString: String {
+        // Day of month (no leading zero)
         let df = DateFormatter()
         df.dateFormat = "d"
         return df.string(from: model.date)
@@ -64,8 +62,7 @@ public struct DayCardView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(dateString)
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(isToday ? CoreUI.Color.accent : .primary)
-
+                    .foregroundStyle(isToday ? Color.accent : .primary)
                 if let title = model.workoutTitle {
                     Text(title)
                         .font(.system(size: 14, weight: .semibold))
@@ -73,7 +70,6 @@ public struct DayCardView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
-
                 if model.plannedSets > 0 {
                     Text("\(model.plannedSets) sets")
                         .font(.system(size: 12, weight: .regular))
@@ -83,13 +79,15 @@ public struct DayCardView: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
+                // Card background with subtle shadow
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(CoreUI.Color.cardBackground)
+                    .fill(Color.cardBackground)
                     .shadow(radius: isToday ? 6 : 2, y: isToday ? 2 : 1)
             )
             .overlay(
+                // Outline stroke: highlight accent border if today
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(isToday ? CoreUI.Color.accent : CoreUI.Color.border, lineWidth: isToday ? 2 : 1)
+                    .stroke(isToday ? Color.accent : Color.border, lineWidth: isToday ? 2 : 1)
             )
         }
         .buttonStyle(.plain)

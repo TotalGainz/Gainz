@@ -1,3 +1,4 @@
+// OnboardingPreferencesView.swift
 //
 //  OnboardingPreferencesView.swift
 //  Gainz
@@ -9,6 +10,7 @@
 import SwiftUI
 
 // MARK: - OnboardingPreferencesView
+/// Onboarding step for setting user preferences (notifications, units, etc.).
 @MainActor
 public struct OnboardingPreferencesView: View {
 
@@ -102,9 +104,7 @@ public struct OnboardingPreferencesView: View {
                     .frame(width: 32, height: 32)
                     .foregroundStyle(.white)
                     .background(
-                        LinearGradient(colors: [Color(hex: 0x8C3DFF), Color(hex: 0x4925D6)],
-                                       startPoint: .topLeading,
-                                       endPoint: .bottomTrailing)
+                        LinearGradient.brandGradient
                             .clipShape(Circle())
                     )
 
@@ -148,22 +148,11 @@ public struct OnboardingPreferencesView: View {
 }
 
 // MARK: - Preferences Model
-public struct UserPreferences: Codable {
+public struct UserPreferences: Codable, Sendable {
     public let notifications: Bool
     public let healthSync: Bool
     public let metricUnits: Bool
     public let newsletter: Bool
-}
-
-// MARK: - Color Helper
-private extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(.sRGB,
-                  red: Double((hex & 0xFF0000) >> 16) / 255,
-                  green: Double((hex & 0x00FF00) >> 8) / 255,
-                  blue: Double(hex & 0x0000FF) / 255,
-                  opacity: opacity)
-    }
 }
 
 // MARK: - Preview

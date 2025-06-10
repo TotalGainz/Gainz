@@ -1,13 +1,12 @@
-//
 //  UnitConversion.swift
 //  FeatureSupport
 //
 //  Lightweight, dependency-free helpers for common fitness-centric
-//  unit conversions.  Pure Foundation; no HealthKit, no CoreLocation.
+//  unit conversions. Uses only Foundation (no HealthKit or CoreLocation).
 //
-//  • Precision ≥ IEEE-754 Double (15 decimal digits).
-//  • Rounded helpers for UI display (defaults to 2 dp).
-//  • Zero velocity, HRV, or recovery logic — by design.
+//  • Precision ≥ IEEE-754 Double (~15 decimal digits).
+//  • Rounded results for UI display (default: 2 decimal places).
+//  • No conversions for velocity, heart rate variability (HRV), or recovery metrics (by design).
 //
 //  Created for Gainz on 27 May 2025.
 //
@@ -16,94 +15,131 @@ import Foundation
 
 // MARK: - UnitConversion
 
-/// Namespace for one-line unit conversions.
+/// A namespace for one-line unit conversions between metric and imperial units.
+///
+/// Example usage:
 /// ```swift
 /// let plates = UnitConversion.kgToLb(100)   // 220.46
-/// let arm    = UnitConversion.cmToIn(40)    // 15.75
+/// let armCircumference = UnitConversion.cmToIn(40)    // 15.75
 /// ```
 public enum UnitConversion {
 
-    // MARK: Scalars
-    private static let poundsPerKilogram      = 2.204_622_621_85
-    private static let inchesPerCentimeter    = 0.393_700_787_4
-    private static let feetPerMeter           = 3.280_839_895
+    // MARK: - Constants
 
-    private static let kilometersPerMile      = 1.609_344
-    private static let metersPerYard          = 0.914_4
+    /// Conversion factor from kilograms to pounds.
+    private static let poundsPerKilogram: Double = 2.204_622_621_85
+    /// Conversion factor from centimeters to inches.
+    private static let inchesPerCentimeter: Double = 0.393_700_787_4
+    /// Conversion factor from meters to feet.
+    private static let feetPerMeter: Double = 3.280_839_895
+    /// Conversion factor from miles to kilometers.
+    private static let kilometersPerMile: Double = 1.609_344
+    /// Conversion factor from yards to meters.
+    private static let metersPerYard: Double = 0.914_4
 
-    // MARK: Weight
+    // MARK: - Weight
 
-    /// Converts kilograms → pounds.
-    public static func kgToLb(_ kg: Double,
-                              roundedTo decimals: Int = 2) -> Double {
-        ((kg * poundsPerKilogram) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a weight from kilograms to pounds, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - kg: The weight in kilograms.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The weight in pounds, rounded to the given number of decimal places.
+    @inlinable public static func kgToLb(_ kg: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((kg * poundsPerKilogram) * scale).rounded() / scale
     }
 
-    /// Converts pounds → kilograms.
-    public static func lbToKg(_ lb: Double,
-                              roundedTo decimals: Int = 2) -> Double {
-        ((lb / poundsPerKilogram) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a weight from pounds to kilograms, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - lb: The weight in pounds.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The weight in kilograms, rounded to the given number of decimal places.
+    @inlinable public static func lbToKg(_ lb: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((lb / poundsPerKilogram) * scale).rounded() / scale
     }
 
-    // MARK: Length
+    // MARK: - Length
 
-    /// Converts centimeters → inches.
-    public static func cmToIn(_ cm: Double,
-                              roundedTo decimals: Int = 2) -> Double {
-        ((cm * inchesPerCentimeter) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a length from centimeters to inches, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - cm: The length in centimeters.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The length in inches, rounded to the given number of decimal places.
+    @inlinable public static func cmToIn(_ cm: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((cm * inchesPerCentimeter) * scale).rounded() / scale
     }
 
-    /// Converts inches → centimeters.
-    public static func inToCm(_ inches: Double,
-                              roundedTo decimals: Int = 2) -> Double {
-        ((inches / inchesPerCentimeter) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a length from inches to centimeters, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - inches: The length in inches.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The length in centimeters, rounded to the given number of decimal places.
+    @inlinable public static func inToCm(_ inches: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((inches / inchesPerCentimeter) * scale).rounded() / scale
     }
 
-    /// Converts meters → feet.
-    public static func mToFt(_ meters: Double,
-                             roundedTo decimals: Int = 2) -> Double {
-        ((meters * feetPerMeter) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a length from meters to feet, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - meters: The length in meters.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The length in feet, rounded to the given number of decimal places.
+    @inlinable public static func mToFt(_ meters: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((meters * feetPerMeter) * scale).rounded() / scale
     }
 
-    /// Converts feet → meters.
-    public static func ftToM(_ feet: Double,
-                             roundedTo decimals: Int = 2) -> Double {
-        ((feet / feetPerMeter) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a length from feet to meters, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - feet: The length in feet.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The length in meters, rounded to the given number of decimal places.
+    @inlinable public static func ftToM(_ feet: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((feet / feetPerMeter) * scale).rounded() / scale
     }
 
-    // MARK: Distance
+    // MARK: - Distance
 
-    /// Converts miles → kilometres.
-    public static func miToKm(_ miles: Double,
-                              roundedTo decimals: Int = 2) -> Double {
-        ((miles * kilometersPerMile) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a distance from miles to kilometers, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - miles: The distance in miles.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The distance in kilometers, rounded to the given number of decimal places.
+    @inlinable public static func miToKm(_ miles: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((miles * kilometersPerMile) * scale).rounded() / scale
     }
 
-    /// Converts kilometres → miles.
-    public static func kmToMi(_ km: Double,
-                              roundedTo decimals: Int = 2) -> Double {
-        ((km / kilometersPerMile) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a distance from kilometers to miles, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - km: The distance in kilometers.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The distance in miles, rounded to the given number of decimal places.
+    @inlinable public static func kmToMi(_ km: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((km / kilometersPerMile) * scale).rounded() / scale
     }
 
-    /// Converts yards → metres.
-    public static func ydToM(_ yards: Double,
-                             roundedTo decimals: Int = 2) -> Double {
-        ((yards * metersPerYard) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a distance from yards to meters, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - yards: The distance in yards.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The distance in meters, rounded to the given number of decimal places.
+    @inlinable public static func ydToM(_ yards: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((yards * metersPerYard) * scale).rounded() / scale
     }
 
-    /// Converts metres → yards.
-    public static func mToYd(_ meters: Double,
-                             roundedTo decimals: Int = 2) -> Double {
-        ((meters / metersPerYard) * pow(10, Double(decimals)))
-            .rounded() / pow(10, Double(decimals))
+    /// Converts a distance from meters to yards, rounded to a specified number of decimal places.
+    /// - Parameters:
+    ///   - meters: The distance in meters.
+    ///   - decimals: Number of decimal places for rounding (default is 2).
+    /// - Returns: The distance in yards, rounded to the given number of decimal places.
+    @inlinable public static func mToYd(_ meters: Double, roundedTo decimals: Int = 2) -> Double {
+        let scale = pow(10, Double(decimals))
+        return ((meters / metersPerYard) * scale).rounded() / scale
     }
 }

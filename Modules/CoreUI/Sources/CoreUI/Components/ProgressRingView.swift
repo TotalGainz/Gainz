@@ -1,10 +1,9 @@
-//
 //  ProgressRingView.swift
 //  CoreUI – Components
 //
-//  Circular progress indicator used for goals (volume, sets completed, etc.).
-//  Brand-aligned: black canvas, indigo-violet gradient, smooth ease-out animation.
-//  Pure SwiftUI; zero UIKit.  Works on iOS, watchOS, macOS, visionOS.
+//  Circular progress indicator for goals (volume, sets completed, etc.).
+//  Brand-aligned: black background, indigo-violet gradient, smooth ease-out animation.
+//  100% SwiftUI (no UIKit). Works on iOS, watchOS, macOS, visionOS.
 //
 //  Created for Gainz on 27 May 2025.
 //
@@ -13,54 +12,54 @@ import SwiftUI
 
 // MARK: - ProgressRingView
 
-public struct ProgressRingView: View {
+public struct ProgressRingView<Label: View>: View {
 
-    // Progress 0…1
+    // Progress fraction (0.0 to 1.0)
     @Binding private var progress: Double
-    // Ring diameter
+    // Ring diameter in points
     private let size: CGFloat
-    // Line width (absolute, not ratio) so small rings stay readable
+    // Stroke line width (absolute, not relative)
     private let lineWidth: CGFloat
-    // Optional centered label (e.g., % string)
-    private let label: () -> AnyView
+    // Optional center label content
+    private let labelContent: () -> Label
 
     public init(
         progress: Binding<Double>,
         size: CGFloat = 80,
         lineWidth: CGFloat = 10,
-        @ViewBuilder label: @escaping () -> some View = { EmptyView() }
+        @ViewBuilder label: @escaping () -> Label = { EmptyView() }
     ) {
         self._progress = progress
         self.size = size
         self.lineWidth = lineWidth
-        self.label = { AnyView(label()) }
+        self.labelContent = label
     }
 
     // MARK: Body
     public var body: some View {
         ZStack {
-            // Background track
+            // Background track (faint circular track)
             Circle()
                 .stroke(
                     Color.white.opacity(0.08),
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
 
-            // Progress arc
+            // Progress arc (trimmed circle indicating progress)
             Circle()
                 .trim(from: 0, to: min(max(progress, 0), 1))
                 .stroke(
                     AngularGradient(
-                        gradient: Gradient(colors: [.brandIndigo, .brandViolet]),
+                        colors: [Color.brandIndigo, Color.brandViolet],
                         center: .center
                     ),
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
-                .rotationEffect(.degrees(-90)) // start at 12 o’clock
+                .rotationEffect(.degrees(-90))  // start at 12 o’clock (top)
                 .animation(.easeOut(duration: 0.5), value: progress)
 
-            // Center content
-            label()
+            // Center content (e.g., percentage text)
+            labelContent()
                 .frame(width: size * 0.6, height: size * 0.6)
                 .minimumScaleFactor(0.5)
         }
@@ -71,8 +70,20 @@ public struct ProgressRingView: View {
     }
 }
 
-// MARK: - Brand Colors (fallback)
+// MARK: - Preview
 
-private extension Color {
-    static let brandIndigo = Color(red: 122 / 255, green: 44 / 255, blue: 243 / 255)
-    static let brandViolet = Color(red: 156 / 255, green: 
+#Preview("Progress Ring") {
+    VStack(spacing: 16) {
+        ProgressRingView(progress: .constant(0.75)) {
+            Text("75%")
+                .foregroundColor(.white)
+                .font(.headline)
+        }
+        .frame(width: 100, height: 100)
+        ProgressRingView(progress: .constant(0.3))
+            .frame(width: 100, height: 100)
+    }
+    .padding()
+    .background(Color.black)
+    .foregroundColor(.white)
+}

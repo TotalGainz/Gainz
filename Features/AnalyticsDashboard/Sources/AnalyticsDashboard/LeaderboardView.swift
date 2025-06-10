@@ -1,56 +1,72 @@
-//
 //  LeaderboardView.swift
 //  Gainz – AnalyticsDashboard Feature
 //
-//  Shows top lifters and body-comp trends among friends, with
-//  animated rank transitions and a “you” highlight stripe.
-//
-//  Created by AI-Assistant on 2025-06-03.
+//  Displays a leaderboard of users (friends) comparing strength or body metrics, with
+//  segment controls for different categories. Highlights the current user and animates rank changes.
 //
 
 import SwiftUI
-import Domain   // LeaderboardEntry, LeaderboardCategory
+import Domain   // LeaderboardEntry, LeaderboardCategory definitions
 import CoreUI   // ColorPalette, AsyncAvatar, ShadowTokens
 
-// MARK: – Display Model
+// MARK: - Data Models
+
+/// A single entry (row) in the leaderboard.
 public struct LeaderboardEntry: Identifiable, Hashable {
-    public let id         : UUID
-    public let userName   : String
-    public let avatarURL  : URL?
-    public let metricValue: Double   // kg or points
-    public let rank       : Int
+    public let id: UUID
+    public let userName: String
+    public let avatarURL: URL?
+    public let metricValue: Double   // Value for the metric (e.g., total strength or weight).
+    public let rank: Int
     public let isCurrentUser: Bool
+
+    public init(id: UUID = UUID(),
+                userName: String,
+                avatarURL: URL? = nil,
+                metricValue: Double,
+                rank: Int,
+                isCurrentUser: Bool = false) {
+        self.id = id
+        self.userName = userName
+        self.avatarURL = avatarURL
+        self.metricValue = metricValue
+        self.rank = rank
+        self.isCurrentUser = isCurrentUser
+    }
 }
 
-// Metric buckets selectable by segment
+/// The metric categories selectable in the leaderboard (Strength, Body Weight, FFMI).
 public enum LeaderboardCategory: String, CaseIterable, Identifiable {
     case totalStrength = "Strength"
     case bodyweight    = "Body Wt."
     case ffmi          = "FFMI"
+
     public var id: String { rawValue }
 }
 
-// MARK: – View
-public struct LeaderboardView: View {
+// MARK: - Main View
 
-    // Injected from ViewModel
-    @State public var selected: LeaderboardCategory = .totalStrength
-    @State public var board   : [LeaderboardCategory : [LeaderboardEntry]]
+public struct LeaderboardView: View {
+    @StateObject private var viewModel: LeaderboardVM
+    @State private var selected: LeaderboardCategory = .totalStrength
+
+    public init(analyticsUseCase: CalculateAnalyticsUseCase) {
+        _viewModel = StateObject(wrappedValue: LeaderboardVM(analyticsUseCase: analyticsUseCase))
+    }
 
     public var body: some View {
         VStack {
             Picker("Metric", selection: $selected) {
-                ForEach(LeaderboardCategory.allCases) { cat in
-                    Text(cat.rawValue).tag(cat)
+                ForEach(LeaderboardCategory.allCases) { category in
+                    Text(category.rawValue).tag(category)
                 }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
 
-            // List auto-animates when data changes
             List {
-                ForEach(board[selected] ?? []) { entry in
-                    LeaderboardRow(entry: entry)
+                ForEach(viewModel.board[selected] ?? []) { entry in
+                    LeaderboardRow(entry: entry, category: selected)
                         .listRowInsets(.init(top: 6, leading: 16, bottom: 6, trailing: 16))
                         .listRowSeparator(.hidden)
                         .background(entry.isCurrentUser ? ColorPalette.phoenix.opacity(0.08) : Color.clear)
@@ -62,12 +78,34 @@ public struct LeaderboardView: View {
         }
         .navigationTitle("Leaderboard")
         .background(Color(uiColor: .systemGroupedBackground))
+        .task {
+            await viewModel.refresh()
+        }
     }
 }
 
-// MARK: – Row
+// MARK: - ViewModel
+
+@MainActor
+private final class LeaderboardVM: ObservableObject {
+    private let analyticsUseCase: CalculateAnalyticsUseCase
+    @Published var board: [LeaderboardCategory: [LeaderboardEntry]] = [:]
+
+    init(analyticsUseCase: CalculateAnalyticsUseCase) {
+        self.analyticsUseCase = analyticsUseCase
+    }
+
+    /// Fetches leaderboard data for all categories (e.g., from network or database).
+    func refresh() async {
+        board = await analyticsUseCase.fetchLeaderboardEntries()
+    }
+}
+
+// MARK: - Row View
+
 private struct LeaderboardRow: View {
     let entry: LeaderboardEntry
+    let category: LeaderboardCategory
 
     var body: some View {
         HStack(spacing: 14) {
@@ -75,10 +113,7 @@ private struct LeaderboardRow: View {
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .frame(width: 34, height: 34)
                 .foregroundStyle(rankColor)
-                .background(
-                    Circle()
-                        .fill(rankColor.opacity(0.15))
-                )
+                .background(Circle().fill(rankColor.opacity(0.15)))
             AsyncAvatar(url: entry.avatarURL, fallbackText: entry.userName)
                 .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 2) {
@@ -95,57 +130,45 @@ private struct LeaderboardRow: View {
         .contextMenu { shareButton }
     }
 
-    // Rank-based color flourish
+    /// Rank circle color (gold/silver/bronze for top 3, else secondary).
     private var rankColor: Color {
         switch entry.rank {
-        case 1:  Color.yellow
-        case 2:  Color.gray
-        case 3:  Color.brown
-        default: Color.secondary
+        case 1:  return .yellow
+        case 2:  return .gray
+        case 3:  return .brown
+        default: return .secondary
         }
     }
 
+    /// Formats the entry's metric value with appropriate unit or label.
     private var formattedMetric: String {
-        switch LeaderboardCategory.totalStrength {
-        case .totalStrength: "\(Int(entry.metricValue)) kg total"
-        case .bodyweight:    "\(String(format: "%.1f", entry.metricValue)) kg"
-        case .ffmi:          "\(String(format: "%.1f", entry.metricValue)) FFMI"
+        switch category {
+        case .totalStrength:
+            return "\(Int(entry.metricValue)) kg total"
+        case .bodyweight:
+            return String(format: "%.1f kg", entry.metricValue)
+        case .ffmi:
+            return String(format: "%.1f FFMI", entry.metricValue)
         }
     }
 
+    /// Context menu option to copy the user's rank to clipboard.
     @ViewBuilder
     private var shareButton: some View {
         Button {
-            let text = "\(entry.userName) hits #\(entry.rank) on Gainz Leaderboard!"
-            UIPasteboard.general.string = text
+            let copyText = "\(entry.userName) is #\(entry.rank) on the leaderboard for \(category.rawValue)."
+            UIPasteboard.general.string = copyText
         } label: {
             Label("Copy Rank", systemImage: "doc.on.doc")
         }
     }
 }
 
-// MARK: – Preview
-#if DEBUG
-struct LeaderboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        LeaderboardView(
-            board: [
-                .totalStrength: demoEntries(),
-                .bodyweight:    demoEntries(),
-                .ffmi:          demoEntries()
-            ]
-        )
-        .preferredColorScheme(.dark)
-    }
+// MARK: - Preview
 
-    private static func demoEntries() -> [LeaderboardEntry] {
-        (1...10).map {
-            LeaderboardEntry(
-                id: .init(), userName: "Athlete\($0)",
-                avatarURL: nil, metricValue: Double.random(in: 300...600),
-                rank: $0, isCurrentUser: $0 == 4
-            )
-        }
+#Preview {
+    NavigationStack {
+        LeaderboardView(analyticsUseCase: .preview)
+            .preferredColorScheme(.dark)
     }
 }
-#endif

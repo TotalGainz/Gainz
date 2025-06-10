@@ -1,3 +1,4 @@
+// OnboardingView.swift
 //
 //  OnboardingView.swift
 //  Gainz
@@ -11,15 +12,71 @@ import SwiftUI
 // MARK: - OnboardingView
 @MainActor
 public struct OnboardingView: View {
-
     // MARK: State
-    @Environment(\.dismiss) private var dismiss
-    @State private var currentPage: Int = 0
+    @Environment(OnboardingViewModel.self) private var viewModel
+    @State private var path: [OnboardingStep] = []
 
-    private let pages: [OnboardingPage] = OnboardingPage.samplePages
+    /// Navigation steps in the onboarding flow
+    private enum OnboardingStep: Hashable {
+        case goal, experience, frequency, preferences, planPreview
+    }
 
-    // MARK: Body
     public var body: some View {
+        NavigationStack(path: $path) {
+            // Intro pages carousel as the initial screen
+            OnboardingIntroView(currentPage: $viewModel.currentPage, pages: viewModel.pages) {
+                // When intro pages are completed, proceed to goal selection
+                path.append(.goal)
+            }
+            .navigationDestination(for: OnboardingStep.self) { step in
+                switch step {
+                case .goal:
+                    OnboardingGoalView { goal in
+                        // Store selected goal and navigate to next step
+                        viewModel.selectedGoal = goal
+                        path.append(.experience)
+                    }
+                case .experience:
+                    OnboardingExperienceView { experience in
+                        viewModel.selectedExperience = experience
+                        path.append(.frequency)
+                    }
+                case .frequency:
+                    OnboardingFrequencyView { frequency in
+                        viewModel.selectedFrequency = frequency
+                        path.append(.preferences)
+                    }
+                case .preferences:
+                    OnboardingPreferencesView { preferences in
+                        viewModel.selectedPreferences = preferences
+                        path.append(.planPreview)
+                    }
+                case .planPreview:
+                    // All data collected, create plan preview model
+                    let preview = PlanPreview(goal: viewModel.selectedGoal!,
+                                               experience: viewModel.selectedExperience!,
+                                               frequency: viewModel.selectedFrequency!,
+                                               preferences: viewModel.selectedPreferences!)
+                    OnboardingPlanPreviewView(preview: preview) {
+                        // Mark onboarding complete and transition to main app
+                        viewModel.skip()
+                    }
+                }
+            }
+        }
+        .background(Color.black.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - OnboardingIntroView
+/// The introductory onboarding carousel with welcome pages.
+private struct OnboardingIntroView: View {
+    @Binding var currentPage: Int
+    let pages: [OnboardingPage]
+    let onFinishIntro: () -> Void
+
+    var body: some View {
         VStack(spacing: 0) {
             TabView(selection: $currentPage) {
                 ForEach(pages.indices, id: \.self) { index in
@@ -34,46 +91,31 @@ public struct OnboardingView: View {
             PageControl(numberOfPages: pages.count, currentPage: $currentPage)
                 .padding(.vertical, 12)
 
-            primaryButton(title: currentPage == pages.lastIndex ? "Get Started" : "Next") {
-                advance()
+            Button {
+                if currentPage < pages.count - 1 {
+                    withAnimation {
+                        currentPage += 1
+                    }
+                } else {
+                    onFinishIntro()
+                }
+            } label: {
+                Text(currentPage < pages.count - 1 ? "Next" : "Get Started")
+                    .font(.system(.headline, weight: .semibold, design: .rounded))
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(LinearGradient.brandGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .accessibilityLabel(currentPage < pages.count - 1 ? "Next" : "Get Started")
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
-        }
-        .background(Color.black.ignoresSafeArea())
-        .preferredColorScheme(.dark)
-    }
-
-    // MARK: Helpers
-    private func advance() {
-        if currentPage < pages.count - 1 {
-            withAnimation { currentPage += 1 }
-        } else {
-            dismiss()
-        }
-    }
-
-    @ViewBuilder
-    private func primaryButton(title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(.headline, weight: .semibold, design: .rounded))
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .background(
-                    LinearGradient(
-                        colors: [Color(hex: 0x8C3DFF), Color(hex: 0x4925D6)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .accessibilityLabel(title)
         }
     }
 }
 
 // MARK: - OnboardingPageView
+/// A single page in the intro carousel (image and text).
 private struct OnboardingPageView: View {
     let page: OnboardingPage
 
@@ -83,7 +125,7 @@ private struct OnboardingPageView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxHeight: 260)
-                .accessibilityHidden(true)
+                .accessibilityHidden(true) // Decorative image
 
             Text(page.title)
                 .font(.system(.title, weight: .bold, design: .rounded))
@@ -102,6 +144,7 @@ private struct OnboardingPageView: View {
 }
 
 // MARK: - PageControl
+/// Page indicator dots for the intro carousel.
 private struct PageControl: View {
     let numberOfPages: Int
     @Binding var currentPage: Int
@@ -110,7 +153,7 @@ private struct PageControl: View {
         HStack(spacing: 8) {
             ForEach(0..<numberOfPages, id: \.self) { i in
                 Circle()
-                    .fill(i == currentPage ? Color(hex: 0x8C3DFF) : Color.gray.opacity(0.4))
+                    .fill(i == currentPage ? Color.brandPurpleStart : Color.gray.opacity(0.4))
                     .frame(width: i == currentPage ? 10 : 8, height: i == currentPage ? 10 : 8)
                     .scaleEffect(i == currentPage ? 1.2 : 1)
                     .animation(.easeInOut(duration: 0.25), value: currentPage)
@@ -118,42 +161,3 @@ private struct PageControl: View {
         }
     }
 }
-
-// MARK: - Models
-private struct OnboardingPage: Identifiable {
-    let id = UUID()
-    let imageName: String
-    let title: String
-    let subtitle: String
-
-    static let samplePages: [OnboardingPage] = [
-        .init(imageName: "Phoenix-Logo",
-              title: "Rise Stronger",
-              subtitle: "Smarter training plans driven by cutting-edge sports science."),
-        .init(imageName: "Chart-Progress",
-              title: "Track Everything",
-              subtitle: "Lift logs, nutrition, sleep and recovery in one seamless hub."),
-        .init(imageName: "Community",
-              title: "Beat Your Best",
-              subtitle: "Compete with friends and climb the leaderboards.")
-    ]
-}
-
-// MARK: - Utilities
-private extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex & 0xFF0000) >> 16) / 255,
-            green: Double((hex & 0x00FF00) >> 8) / 255,
-            blue: Double(hex & 0x0000FF) / 255,
-            opacity: opacity
-        )
-    }
-}
-
-#if DEBUG
-#Preview {
-    OnboardingView()
-}
-#endif

@@ -1,50 +1,41 @@
-//
 //  AnalyticsEvent.swift
 //  AnalyticsService
 //
-//  Type-safe analytics payloads that can be encoded, queued, and shipped
-//  to any backend.  Inspired by best-practice wrappers that decouple view
-//  code from third-party SDK strings.  [oai_citation:0‡Medium](https://medium.com/better-programming/design-an-analytics-or-event-tracking-manager-for-an-ios-app-75979e7144ee?utm_source=chatgpt.com) [oai_citation:1‡Mixpanel](https://mixpanel.com/blog/how-to-add-analytics-event-tracking-in-swiftui-the-elegant-way/?utm_source=chatgpt.com) [oai_citation:2‡Chris Eidhof](https://chris.eidhof.nl/post/swift-analytics/?utm_source=chatgpt.com)
+//  Type-safe analytics event definitions for telemetry. Each case carries strongly-typed
+//  payload data and can be encoded to JSON for buffering or network transmission.
 //
 //  Design notes
 //  ─────────────
-//  • Pure Swift struct/enum — no SDK imports, no UIKit/SwiftUI.
-//  • `Codable` & `Hashable` via custom synthesis so associated-value
-//    enums round-trip through JSON.  [oai_citation:3‡Nil Coalescing](https://nilcoalescing.com/blog/CodableConformanceForSwiftEnums?utm_source=chatgpt.com) [oai_citation:4‡Stack Overflow](https://stackoverflow.com/questions/44580719/how-do-i-make-an-enum-decodable-in-swift?utm_source=chatgpt.com) [oai_citation:5‡Swift by Sundell](https://www.swiftbysundell.com/articles/codable-synthesis-for-swift-enums?utm_source=chatgpt.com)
-//  • No HRV, recovery, or bar-velocity metrics are captured.
-//  • Add / deprecate cases via semantic versioning to avoid breaking the
-//    ingest pipeline.  [oai_citation:6‡Segment](https://segment.com/docs/connections/sources/catalog/libraries/mobile/apple/implementation/?utm_source=chatgpt.com)
+//  • Pure Swift struct/enum — no third-party SDK or UI framework dependencies.
+//  • Encoded as `{ "caseId": <eventName>, "payload": { ... } }` for interoperability.
+//  • Custom Codable conformance ensures associated values round-trip through JSON.
+//  • No HRV, recovery-score, or bar-velocity metrics are ever captured.
+//  • Extend cautiously; adding cases is fine, but removing or renaming breaks decoding.
 //
 //  Created for Gainz on 27 May 2025.
 //
 
 import Foundation
-import Domain   // RPE, Exercise IDs, etc.
+import Domain   // Types like RPE, exercise identifiers, etc.
 
 // MARK: - AnalyticsEvent
 
-/// Finite set of events Gainz records.  Extend cautiously; removing or
-/// renaming a case is a breaking change for consumers downstream.
+/// Finite set of analytics events that Gainz records. Extend this enum cautiously.
+/// Removing or renaming a case is a breaking change for downstream consumers.
 public enum AnalyticsEvent: Hashable, Codable {
 
     // App-level lifecycle
-    case appOpened                      // cold launch
-    case appBackgrounded(time: TimeInterval)
+    case appOpened                             // App cold launch (no payload)
+    case appBackgrounded(time: TimeInterval)   // Moved to background; duration since open
 
     // Onboarding / settings
-    case onboardingCompleted(userId: UUID)
-    case darkModeToggled(isOn: Bool)
+    case onboardingCompleted(userId: UUID)     // User finished onboarding (user identifier)
+    case darkModeToggled(isOn: Bool)           // User toggled dark mode setting
 
     // Planner & training flow
     case workoutSessionStarted(sessionId: UUID, date: Date)
     case workoutSessionEnded(sessionId: UUID, duration: TimeInterval)
-
-    case exerciseLogged(
-        exerciseId: UUID,
-        reps: Int,
-        weight: Double,
-        rpe: RPE
-    )
+    case exerciseLogged(exerciseId: UUID, reps: Int, weight: Double, rpe: RPE)
 
     // Error & diagnostics
     case errorLogged(code: String, message: String)
@@ -56,16 +47,17 @@ public enum AnalyticsEvent: Hashable, Codable {
         case payload
     }
 
-    // MARK: Codable
+    // MARK: Encodable
 
-    /// Encodes the enum w/ associated data as `{ "caseId": "exerciseLogged",
-    /// "payload": { ... } }`.  Pattern mirrors Segment & Mixpanel guides.  [oai_citation:7‡Segment](https://segment.com/docs/connections/sources/catalog/libraries/mobile/apple/implementation/?utm_source=chatgpt.com) [oai_citation:8‡Intro to iOS Development](https://ios-course.cornellappdev.com/chapters/debugging/analytics?utm_source=chatgpt.com)
+    /// Custom encoding to JSON with a `caseId` and typed `payload`.
+    /// Example output: `{ "caseId": "exerciseLogged", "payload": { ... } }`
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         switch self {
         case .appOpened:
             try container.encode("appOpened", forKey: .caseId)
+            // No payload for appOpened.
 
         case .appBackgrounded(let time):
             try container.encode("appBackgrounded", forKey: .caseId)
@@ -85,123 +77,105 @@ public enum AnalyticsEvent: Hashable, Codable {
 
         case .workoutSessionEnded(let id, let duration):
             try container.encode("workoutSessionEnded", forKey: .caseId)
-            try container.encode(
-                ["sessionId": id, "duration": duration],
-                forKey: .payload
-            )
+            try container.encode(["sessionId": id, "duration": duration], forKey: .payload)
 
         case .exerciseLogged(let eId, let reps, let weight, let rpe):
             try container.encode("exerciseLogged", forKey: .caseId)
-            try container.encode(
-                ["exerciseId": eId,
-                 "reps": reps,
-                 "weight": weight,
-                 "rpe": rpe.rawValue],
-                forKey: .payload
-            )
+            // Encode RPE via its raw value or codable representation
+            try container.encode(["exerciseId": eId,
+                                   "reps": reps,
+                                   "weight": weight,
+                                   "rpe": rpe], forKey: .payload)
 
         case .errorLogged(let code, let message):
             try container.encode("errorLogged", forKey: .caseId)
-            try container.encode(
-                ["code": code, "message": message],
-                forKey: .payload
-            )
+            try container.encode(["code": code, "message": message], forKey: .payload)
         }
     }
 
+    // MARK: Decodable
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let caseId    = try container.decode(String.self, forKey: .caseId)
+        let caseId = try container.decode(String.self, forKey: .caseId)
 
         switch caseId {
         case "appOpened":
             self = .appOpened
 
         case "appBackgrounded":
-            let pay = try container.decode([String: TimeInterval].self,
-                                           forKey: .payload)
-            self = .appBackgrounded(time: pay["time"] ?? 0)
+            let payload = try container.decode([String: TimeInterval].self, forKey: .payload)
+            // Default to 0 if key missing (should not happen in well-formed data)
+            let time = payload["time"] ?? 0
+            self = .appBackgrounded(time: time)
 
         case "onboardingCompleted":
-            let pay = try container.decode([String: UUID].self,
-                                           forKey: .payload)
-            self = .onboardingCompleted(userId: pay["userId"]!)
+            let payload = try container.decode([String: UUID].self, forKey: .payload)
+            guard let uid = payload["userId"] else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .payload, in: container,
+                    debugDescription: "Missing userId in onboardingCompleted payload"
+                )
+            }
+            self = .onboardingCompleted(userId: uid)
 
         case "darkModeToggled":
-            let pay = try container.decode([String: Bool].self,
-                                           forKey: .payload)
-            self = .darkModeToggled(isOn: pay["isOn"] ?? false)
+            let payload = try container.decode([String: Bool].self, forKey: .payload)
+            let isOn = payload["isOn"] ?? false
+            self = .darkModeToggled(isOn: isOn)
 
         case "workoutSessionStarted":
-            let pay = try container.decode([String: DateCodableValue].self,
-                                           forKey: .payload)
-            self = .workoutSessionStarted(
-                sessionId: pay["sessionId"]!.uuid,
-                date: pay["date"]!.date
-            )
+            // Decode into a structured payload (expects sessionId and date)
+            let p = try container.decode(SessionStartedPayload.self, forKey: .payload)
+            self = .workoutSessionStarted(sessionId: p.sessionId, date: p.date)
 
         case "workoutSessionEnded":
-            let pay = try container.decode([String: DoubleCodableValue].self,
-                                           forKey: .payload)
-            self = .workoutSessionEnded(
-                sessionId: pay["sessionId"]!.uuid,
-                duration: pay["duration"]!.double
-            )
+            let p = try container.decode(SessionEndedPayload.self, forKey: .payload)
+            self = .workoutSessionEnded(sessionId: p.sessionId, duration: p.duration)
 
         case "exerciseLogged":
-            let pay = try container.decode([String: ExercisePayload].self,
-                                           forKey: .payload)
-            let p   = pay["exerciseId"]!
+            let p = try container.decode(ExerciseLoggedPayload.self, forKey: .payload)
             self = .exerciseLogged(
-                exerciseId: p.id,
+                exerciseId: p.exerciseId,
                 reps: p.reps,
                 weight: p.weight,
                 rpe: p.rpe
             )
 
         case "errorLogged":
-            let pay = try container.decode([String: String].self,
-                                           forKey: .payload)
-            self = .errorLogged(
-                code: pay["code"] ?? "unknown",
-                message: pay["message"] ?? ""
-            )
+            let payload = try container.decode([String: String].self, forKey: .payload)
+            let code = payload["code"] ?? "unknown"
+            let message = payload["message"] ?? ""
+            self = .errorLogged(code: code, message: message)
 
         default:
+            // Unknown caseId – data is likely from a newer app version or corrupt.
             throw DecodingError.dataCorruptedError(
-                forKey: .caseId,
-                in: container,
-                debugDescription: "Unknown AnalyticsEvent case '\(caseId)'"
+                forKey: .caseId, in: container,
+                debugDescription: "Unrecognized AnalyticsEvent case '\(caseId)'"
             )
         }
     }
-}
 
-// MARK: - Helper Codable wrappers
+    // MARK: - Associated Value Payloads (for decoding convenience)
 
-/// Lightweight wrappers so we can map heterogeneous JSON payloads
-/// without a giant struct per case.  [oai_citation:9‡SketchyTech](https://sketchytech.blogspot.com/2018/08/swift-codable-encounters-of-enum-kind.html?utm_source=chatgpt.com) [oai_citation:10‡Natan Rolnik's blog](https://blog.natanrolnik.me/codable-enums-associated-values?utm_source=chatgpt.com)
-private struct DateCodableValue: Codable { let uuid: UUID; let date: Date
-    init(from decoder: Decoder) throws {
-        let c = try decoder.singleValueContainer()
-        let d = try c.decode([String: String].self)
-        uuid = UUID(uuidString: d["sessionId"] ?? "") ?? UUID()
-        date = ISO8601DateFormatter().date(from: d["date"] ?? "") ?? .init()
+    private struct SessionStartedPayload: Codable {
+        let sessionId: UUID
+        let date: Date
+    }
+    private struct SessionEndedPayload: Codable {
+        let sessionId: UUID
+        let duration: TimeInterval
+    }
+    private struct ExerciseLoggedPayload: Codable {
+        let exerciseId: UUID
+        let reps: Int
+        let weight: Double
+        let rpe: RPE
     }
 }
-private struct DoubleCodableValue: Codable { let uuid: UUID; let double: Double
-    init(from decoder: Decoder) throws {
-        let c = try decoder.singleValueContainer()
-        let d = try c.decode([String: String].self)
-        uuid   = UUID(uuidString: d["sessionId"] ?? "") ?? UUID()
-        double = Double(d["duration"] ?? "") ?? 0
-    }
-}
-private struct ExercisePayload: Codable {
-    let id: UUID; let reps: Int; let weight: Double; let rpe: RPE
-}
 
-// MARK: - Preview stub (non-App targets)
+ // MARK: - Preview stub (non-App targets)
 
 #if DEBUG && !os(watchOS)
 import XCTest

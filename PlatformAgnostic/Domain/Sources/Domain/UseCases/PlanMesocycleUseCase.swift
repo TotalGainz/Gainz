@@ -1,127 +1,67 @@
-//
-//  PlanMesocycleUseCase.swift
-//  Domain – UseCases
-//
-//  Generates a 4-to-6 week hypertrophy-biased `MesocyclePlan` based on a
-//  high-level template (split, volume targets, micro-progression rules).
-//  Pure domain logic: Foundation only, no UI, no HealthKit.
-//
-//  ───────────── Design Contracts ─────────────
-//  • No HRV, recovery, or velocity metrics.
-//  • All dependencies injected as protocols for testability.
-//  • Algorithm delegates granular set/rep math to `PeriodizationStrategy`.
-//  • Output is 100 % deterministic—same input → same plan.
-//
-//  Created for Gainz by the Core Domain team on 27 May 2025.
-//
+/// PlanMesocycleUseCase.swift
 
 import Foundation
 
-// MARK: - Public Protocol
+// MARK: - Use-Case Protocol
 
-/// Builds a fully-periodised `MesocyclePlan`.
-public protocol PlanMesocycleUseCase {
-    /// - Parameter template: abstract description of the block (split, target volume, rep ranges…)
-    /// - Returns: Deterministic `MesocyclePlan` ready for persistence & UI.
-    func execute(with template: MesocycleTemplate) -> MesocyclePlan
+/// Builds a fully periodized `MesocyclePlan` based on high-level user goal input.
+public protocol PlanMesocycleUseCase: Sendable {
+    /// Generate a new `MesocyclePlan` from the given goal template.
+    func execute(goal: GoalInput) async -> MesocyclePlan
 }
 
-// MARK: - Default Implementation
+// MARK: - Goal Input DTO
 
+/// High-level description of the desired training cycle (user's goal template).
+public struct GoalInput: Sendable {
+    /// Predefined split template (e.g., full-body, push/pull/legs, upper/lower).
+    public enum Split: CaseIterable, Sendable {
+        case fullBody, pushPullLegs, upperLower
+    }
+    public let split: Split
+    public let weeks: Int
+    public let experienceLevel: ExperienceLevel
+
+    public init(split: Split, weeks: Int, experienceLevel: ExperienceLevel) {
+        precondition(weeks >= 1, "weeks must be at least 1.")
+        self.split = split
+        self.weeks = weeks
+        self.experienceLevel = experienceLevel
+    }
+}
+
+/// Default implementation of `PlanMesocycleUseCase`.
 public final class PlanMesocycleUseCaseImpl: PlanMesocycleUseCase {
+    // Dependencies
+    private let planGenerator: PlanGenerating
 
-    // MARK: Dependencies
-
-    private let exerciseRepository: ExerciseRepository
-    private let periodization: PeriodizationStrategy
-    private let uuidProvider: () -> UUID
-    private let dateProvider: () -> Date
-
-    // MARK: Init
-
-    public init(
-        exerciseRepository: ExerciseRepository,
-        periodization: PeriodizationStrategy = LinearPeriodization(),
-        uuidProvider: @escaping () -> UUID = { UUID() },
-        dateProvider: @escaping () -> Date = { Date() }
-    ) {
-        self.exerciseRepository = exerciseRepository
-        self.periodization = periodization
-        self.uuidProvider = uuidProvider
-        self.dateProvider = dateProvider
+    public init(planGenerator: PlanGenerating) {
+        self.planGenerator = planGenerator
     }
 
-    // MARK: Execute
-
-    public func execute(with template: MesocycleTemplate) -> MesocyclePlan {
-
-        // 1. Resolve exercise IDs from catalog
-        let primaryLifts = template.primaryExerciseNames.compactMap {
-            exerciseRepository.exercise(named: $0)?.id
-        }
-
-        // 2. Generate week-by-week targets via injected strategy
-        let weeklyBlocks = periodization.generateBlocks(
-            weeks: template.weeks,
-            volumePerMuscle: template.volumePerMuscleGroup
-        )
-
-        // 3. Assemble MesocyclePlan (immutable struct)
-        return MesocyclePlan(
-            id: uuidProvider(),
-            createdAt: dateProvider(),
-            weeks: weeklyBlocks,
-            primaryExerciseIds: Set(primaryLifts),
-            goal: template.goal
-        )
-    }
-}
-
-// MARK: - Supporting Contracts
-
-/// Thin gateway to whatever persistence layer stores the `Exercise` catalog.
-public protocol ExerciseRepository {
-    /// Returns an `Exercise` with matching display name, or nil.
-    func exercise(named: String) -> Exercise?
-}
-
-/// Strategy object encapsulating periodisation maths (sets, reps, load ramps).
-public protocol PeriodizationStrategy {
-    /// Generates week blocks given volume requirements.
-    func generateBlocks(
-        weeks: Int,
-        volumePerMuscle: [MuscleGroup: Int]
-    ) -> [MesocyclePlan.Week]
-}
-
-// MARK: - Default Linear Periodisation
-
-/// Linear + overload deload (last week = -40 % volume, -15 % load).
-public struct LinearPeriodization: PeriodizationStrategy {
-
-    public init() {}
-
-    public func generateBlocks(
-        weeks: Int,
-        volumePerMuscle: [MuscleGroup: Int]
-    ) -> [MesocyclePlan.Week] {
-
-        precondition(weeks >= 4 && weeks <= 6, "Mesocycle must be 4–6 weeks long.")
-
-        return (0..<weeks).map { index in
-            let overloadFactor = Double(index + 1) / Double(weeks)
-            let isDeload = index == weeks - 1
-
-            let adjustedVolume: [MuscleGroup: Int] = volumePerMuscle.mapValues { base in
-                let raw = isDeload ? Double(base) * 0.6 : Double(base) * overloadFactor
-                return Int(raw.rounded())
+    public func execute(goal: GoalInput) async -> MesocyclePlan {
+        // Map GoalInput to PlanInput for the generator
+        let daysPerWeek: Int = {
+            switch goal.split {
+            case .fullBody:     return 2
+            case .pushPullLegs: return 3
+            case .upperLower:   return 4
             }
-
-            return MesocyclePlan.Week(
-                index: index,
-                volumePerMuscle: adjustedVolume,
-                isDeload: isDeload
-            )
+        }()
+        // Set default volume targets based on experience (novice, intermediate, advanced)
+        let baseVolume = (goal.experienceLevel == .novice ? 10 :
+                          goal.experienceLevel == .intermediate ? 14 : 18)
+        // Assign baseVolume sets to each major muscle group (simplified uniform distribution)
+        var volumeTargets: [MuscleGroup: Int] = [:]
+        for muscle in MuscleGroup.allCases {
+            volumeTargets[muscle] = baseVolume
         }
+        let planInput = PlanInput(weeks: goal.weeks,
+                                  daysPerWeek: daysPerWeek,
+                                  weeklyVolumeTargets: volumeTargets,
+                                  defaultRepRange: RepRange(min: 8, max: 12),
+                                  weeklyVolumeRamp: 0.05)
+        // Generate the plan using the provided PlanGenerator
+        return await planGenerator.makePlan(from: planInput)
     }
 }

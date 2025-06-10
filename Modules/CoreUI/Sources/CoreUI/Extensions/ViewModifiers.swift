@@ -1,4 +1,3 @@
-//
 //  ViewModifiers.swift
 //  CoreUI – Extensions
 //
@@ -16,24 +15,20 @@ import SwiftUI
 // MARK: - CardStyle
 
 /// Applies Gainz’ unified card appearance:
-/// • Deep-black surface (`Color.black` with 90 % opacity)
+/// • Deep-black surface (`Color.black` with 90% opacity)
 /// • 24 pt corner radius
 /// • Soft shadow that mimics logo wing glow
 public struct CardStyle: ViewModifier {
     public func body(content: Content) -> some View {
         content
-            .padding()                               // interior spacing
-            .background(
-                Color.black.opacity(0.90)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            )
-            .shadow(color: Color.brandViolet.opacity(0.25),
-                    radius: 12, x: 0, y: 6)
+            .padding()  // interior spacing
+            .background(Color.black.opacity(0.9), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .shadow(color: Color.brandViolet.opacity(0.25), radius: 12, x: 0, y: 6)
     }
 }
 
 public extension View {
-    /// Shorthand for `.modifier(CardStyle())`
+    /// Shorthand for applying Gainz card style.
     func gainzCard() -> some View {
         modifier(CardStyle())
     }
@@ -43,24 +38,17 @@ public extension View {
 
 /// Renders text with the indigo-to-violet brand gradient.
 public struct GradientText: ViewModifier {
-
-    private let startColor = Color.brandIndigo
-    private let endColor   = Color.brandViolet
-
     public func body(content: Content) -> some View {
         content
-            .overlay(
-                LinearGradient(
-                    colors: [startColor, endColor],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .mask(content)
+            .foregroundStyle(LinearGradient(
+                colors: [Color.brandIndigo, Color.brandViolet],
+                startPoint: .leading, endPoint: .trailing
+            ))
     }
 }
 
 public extension View {
+    /// Shorthand for applying Gainz gradient text styling.
     func gainzGradientText() -> some View {
         modifier(GradientText())
     }
@@ -68,8 +56,8 @@ public extension View {
 
 // MARK: - SectionHeader
 
-/// Standardised section header styling: semibold, gradient text,
-/// and top alignment baseline padding.
+/// Standardised section header styling: semibold font, gradient text,
+/// top alignment with extra top padding, and marked as header for accessibility.
 public struct SectionHeader: ViewModifier {
     public func body(content: Content) -> some View {
         content
@@ -82,16 +70,10 @@ public struct SectionHeader: ViewModifier {
 }
 
 public extension View {
+    /// Shorthand for applying Gainz section header style.
     func gainzSectionHeader() -> some View {
         modifier(SectionHeader())
     }
-}
-
-// MARK: - Brand Colors (fallback)
-
-private extension Color {
-    static let brandIndigo = Color(red: 122 / 255, green: 44 / 255, blue: 243 / 255) // #7A2CF3
-    static let brandViolet = Color(red: 156 / 255, green: 39 / 255, blue: 255 / 255) // #9C27FF
 }
 
 // MARK: - Preview

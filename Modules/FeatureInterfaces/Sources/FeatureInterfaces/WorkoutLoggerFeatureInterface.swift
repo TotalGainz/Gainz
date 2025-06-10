@@ -1,4 +1,3 @@
-//
 //  WorkoutLoggerFeatureInterface.swift
 //  FeatureInterfaces
 //
@@ -14,7 +13,6 @@
 //
 //  Created for Gainz on 27 May 2025.
 //
-
 import SwiftUI
 import Foundation
 import Domain   // MesocyclePlan, WorkoutSession, SetRecord, etc.
@@ -25,6 +23,7 @@ import Domain   // MesocyclePlan, WorkoutSession, SetRecord, etc.
 public protocol WorkoutLoggerFeatureInterface: AnyObject {
 
     // MARK: Entry Points
+
     /// Renders the full screen Workout Logger flow.
     ///
     /// - Parameters:
@@ -38,6 +37,7 @@ public protocol WorkoutLoggerFeatureInterface: AnyObject {
     ) -> AnyView
 
     // MARK: Quick-Access API
+
     /// Immediately records a single set—used by widgets, Siri Shortcuts, etc.
     ///
     /// - Parameters:
@@ -79,8 +79,10 @@ public enum WorkoutLoggerError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .noActiveSession:   return "No active workout session."
-        case .invalidExerciseId: return "The exercise ID is not part of the current session."
+        case .noActiveSession:
+            return "No active workout session."
+        case .invalidExerciseId:
+            return "The exercise ID is not part of the current session."
         }
     }
 }

@@ -2,50 +2,18 @@
 //  MuscleVolumeBarView.swift
 //  Features – Planner
 //
-//  Horizontal stacked-bar visualising relative set volume per muscle
-//  for the current mesocycle week. Colours match the Gainz gradient;
-//  layout is Dynamic-Type friendly and VoiceOver describable.
+//  Horizontal stacked-bar visualising relative set volume per muscle group.
+//  Shows planned vs completed sets with an animated overlay to indicate progress.
+//  Useful for quick feedback on training volume distribution.
 //
-//  ⟡  No HRV, recovery, or velocity data – hypertrophy only.
-//  ⟡  Uses CoreUI tokens (`Color.primaryBlack`, `Gradient.purplePhoenix`).
-//  ⟡  Zero UIKit; pure SwiftUI so it compiles on watchOS / visionOS.
-//
-//  Created by Gainz UI Team on 27 May 2025.
-//
-
 import SwiftUI
-import Domain   // MuscleGroup enum; Mesocycle analytics
-
-// MARK: - Data Model ----------------------------------------------------------
-
-public struct MuscleVolumeDatum: Identifiable, Hashable {
-    public let id: MuscleGroup
-    public let plannedSets: Int           // Weekly planned sets
-    public let completedSets: Int         // Logged sets so far
-
-    // Convenience
-    public var completionRatio: Double {
-        guard plannedSets > 0 else { return 0 }
-        return Double(completedSets) / Double(plannedSets)
-    }
-
-    public init(id: MuscleGroup,
-                plannedSets: Int,
-                completedSets: Int) {
-        self.id = id
-        self.plannedSets = plannedSets
-        self.completedSets = completedSets
-    }
-}
-
-// MARK: - View ----------------------------------------------------------------
+import CoreUI   // Design tokens for colors/gradients
 
 public struct MuscleVolumeBarView: View {
-
-    // Injected data (sorted highest→lowest planned sets for readability)
+    // Injected data (assumed sorted highest→lowest planned sets for readability).
     public let data: [MuscleVolumeDatum]
 
-    // Design constants
+    // Design constants for bar appearance.
     private struct Const {
         static let barHeight: CGFloat = 12
         static let cornerRadius: CGFloat = 6
@@ -55,54 +23,44 @@ public struct MuscleVolumeBarView: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(data) { datum in
                 HStack {
-                    // LABEL
+                    // LABEL: muscle group name
                     Text(datum.id.displayName)
                         .font(.caption.weight(.medium))
                         .foregroundColor(.primary)
                         .frame(width: 80, alignment: .leading)
-
-                    // BAR
+                    // BAR: background and overlay indicating completed portion
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            // Planned volume background
+                            // Planned volume background bar (gray base)
                             Capsule()
                                 .fill(Color.primaryBlack.opacity(0.18))
-
-                            // Completed volume overlay – animates width
+                            // Completed volume overlay – width animated as completedSets changes.
                             Capsule()
                                 .fill(Gradient.purplePhoenix)
-                                .frame(
-                                    width: geo.size.width
-                                        * datum.completionRatio
-                                )
-                                .animation(.easeInOut(duration: 0.35),
-                                           value: datum.completedSets)
+                                .frame(width: geo.size.width * datum.completionRatio)
+                                .animation(.easeInOut(duration: 0.35), value: datum.completedSets)
                         }
                     }
                     .frame(height: Const.barHeight)
-
-                    // NUMBERS
+                    // NUMBERS: completed vs planned sets in monospaced for alignment
                     Text("\(datum.completedSets)/\(datum.plannedSets)")
                         .font(.caption.monospacedDigit())
                         .foregroundColor(.secondary)
                         .frame(width: 60, alignment: .trailing)
                 }
-                .accessibilityElement(children: .ignore) // Custom AX
+                .accessibilityElement(children: .ignore)  // combine custom label/value for accessibility
                 .accessibilityLabel("\(datum.id.displayName) volume")
-                .accessibilityValue(
-                    "\(datum.completedSets) of \(datum.plannedSets) sets"
-                )
+                .accessibilityValue("\(datum.completedSets) of \(datum.plannedSets) sets")
             }
         }
         .padding(.horizontal)
     }
 }
 
-// MARK: - Preview -------------------------------------------------------------
+// MARK: - Preview
 
 #if DEBUG
 struct MuscleVolumeBarView_Previews: PreviewProvider {
-
     static let sample: [MuscleVolumeDatum] = [
         .init(id: .chest,          plannedSets: 20, completedSets: 12),
         .init(id: .quads,          plannedSets: 18, completedSets: 18),
@@ -110,7 +68,6 @@ struct MuscleVolumeBarView_Previews: PreviewProvider {
         .init(id: .biceps,         plannedSets:  9, completedSets:  3),
         .init(id: .posteriorChain, plannedSets: 12, completedSets: 12)
     ]
-
     static var previews: some View {
         Group {
             MuscleVolumeBarView(data: sample)

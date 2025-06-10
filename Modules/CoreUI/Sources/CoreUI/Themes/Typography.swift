@@ -1,15 +1,12 @@
-//
 //  Typography.swift
 //  CoreUI – Themes
 //
-//  Centralised type scale for Gainz. Meant to be the **single source of truth**
-//  for every text style used across the app so visual hierarchy stays consistent
-//  and Dynamic Type support is automatic.
+//  Centralized type scale for Gainz, acting as the single source of truth
+//  for all text styles to maintain visual hierarchy and Dynamic Type support.
 //
-//  • All fonts leverage Apple’s SF Pro Rounded for a softer, friendlier tone.
-//  • Sizes mirror the Human Interface Guidelines default scale, but nudged up
-//    by +1 pt for large titles to improve readability on OLED dark backgrounds.
-//  • Uses SwiftUI’s `Font` and `TextStyle` so scaling & accessibility are free.
+//  • Uses SF Pro Rounded for a softer, friendlier tone.
+//  • Sizes follow default Human Interface Guidelines, with large titles +1 pt for OLED legibility.
+//  • Utilizes SwiftUI Font/TextStyle so scaling & accessibility are automatic.
 //
 //  Created for Gainz on 27 May 2025.
 //
@@ -22,16 +19,12 @@ public enum Typography {
 
     // MARK: Display
 
-    /// 1st-level hero text – Onboarding headlines, empty states.
-    public static let display = Font.system(
-        size: 40,
-        weight: .bold,
-        design: .rounded
-    )
+    /// 1st-level hero text – e.g. onboarding headlines, empty states.
+    public static let display = Font.system(size: 40, weight: .bold, design: .rounded)
 
     // MARK: Headlines
 
-    public static let h1 = Font.system(size: 34, weight: .bold,   design: .rounded)
+    public static let h1 = Font.system(size: 34, weight: .bold, design: .rounded)
     public static let h2 = Font.system(size: 28, weight: .semibold, design: .rounded)
     public static let h3 = Font.system(size: 22, weight: .semibold, design: .rounded)
 
@@ -43,22 +36,23 @@ public enum Typography {
 
     // MARK: Caption & Footnote
 
-    public static let caption    = Font.system(size: 12, weight: .regular, design: .rounded)
-    public static let footnote   = Font.system(size: 11, weight: .regular, design: .rounded)
+    public static let caption  = Font.system(size: 12, weight: .regular, design: .rounded)
+    public static let footnote = Font.system(size: 11, weight: .regular, design: .rounded)
 
-    // MARK: Monospaced (e.g., weight inputs, timers)
+    // MARK: Monospaced (for timers, weight inputs, etc.)
 
     public static let monospace = Font.system(size: 15, weight: .medium, design: .monospaced)
 }
 
 // MARK: - Convenience ViewModifier
 
+/// A view modifier that applies a given font and color with consistent typography styling.
 public struct TypographyStyle: ViewModifier {
     private let font: Font
     private let color: Color
 
     public init(_ font: Font, color: Color = .primary) {
-        self.font  = font
+        self.font = font
         self.color = color
     }
 
@@ -72,8 +66,10 @@ public struct TypographyStyle: ViewModifier {
 }
 
 public extension View {
-
-    /// Shorthand for applying a predefined typography style.
+    /// Applies a predefined typography style to text.
+    /// - Parameters:
+    ///   - font: A Font from the Typography scale.
+    ///   - color: The text color (default .primary for automatic context coloring).
     func typography(_ font: Font, color: Color = .primary) -> some View {
         modifier(TypographyStyle(font, color: color))
     }
@@ -96,5 +92,6 @@ public extension View {
     }
     .padding()
     .background(Color.black)
+    .foregroundColor(.white)
     .previewLayout(.sizeThatFits)
 }

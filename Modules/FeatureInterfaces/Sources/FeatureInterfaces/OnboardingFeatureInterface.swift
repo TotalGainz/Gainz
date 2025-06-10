@@ -1,56 +1,83 @@
-//
 //  OnboardingFeatureInterface.swift
 //  FeatureInterfaces
 //
-//  Abstract interface that lets AppCoordinator talk to the Onboarding
-//  feature without importing its concrete implementation.  Using a protocol-
-//  + factory pattern keeps compile-time dependencies pointed one way only
-//  (App → FeatureInterfaces → OnboardingFeature), so other modules are never
-//  forced to rebuild when the feature’s internals change.
+//  Decoupled interface for the Onboarding feature.
 //
-//  No HRV, recovery, or velocity concepts are referenced here—onboarding
-//  is purely about first-run setup (permissions, profile, preferences).
+//  Goals
+//  ─────
+//  • Keep the App layer and other modules free of concrete Onboarding deps.
+//  • Allow multiple platform-specific implementations (iOS, watchOS, visionOS)
+//    to satisfy the same contract.
+//  • Surface only two responsibilities:
+//      1. Determining if onboarding is still required.
+//      2. Producing a fully composed SwiftUI view to run the flow.
+//  • Remain Foundation-only (except optional SwiftUI environment key) so this
+//    interface can compile on server-side Swift if needed.
 //
 //  Created for Gainz on 27 May 2025.
+//  Revised for public release on 8 Jun 2025.
 //
-
-import SwiftUI
-import Combine
+import Foundation
 
 // MARK: - OnboardingFeatureHosting
 
-/// Anything that can present Onboarding adopts this to receive completion events.
+/// Receives callbacks when onboarding finishes.
+/// Adopted by AppCoordinator (or SceneDelegate on visionOS, watchOS extension).
 public protocol OnboardingFeatureHosting: AnyObject {
-    /// Called once the user finishes the full onboarding flow.
+    /// Called exactly once after the user completes the entire onboarding flow.
     func onboardingDidFinish()
 }
 
 // MARK: - OnboardingFeatureInterface
 
-/// Public surface of the Onboarding bundle.
-/// The concrete implementation lives in Modules/OnboardingFeature.
-public protocol OnboardingFeatureInterface {
+/// Public surface of the Onboarding feature.
+/// Concrete implementations live in platform-specific feature targets.
+public protocol OnboardingFeatureInterface: AnyObject {
 
-    /// A SwiftUI view that renders the entire onboarding flow.
+    /// Returns a type-erased SwiftUI view that renders the full onboarding flow.
     ///
-    /// - Parameter host: The object that will receive completion callbacks.
-    /// - Returns: A type-erased `AnyView` the coordinator can present.
-    func makeOnboardingView(host: OnboardingFeatureHosting) -> AnyView
+    /// - Parameter host: Object to receive completion events.
+    /// - Returns: `Any` so UIKit, AppKit, and Combine-only callers compile
+    ///            without importing SwiftUI (cast to `AnyView` where available).
+    func makeOnboardingView(host: OnboardingFeatureHosting) -> Any
 
-    /// Returns `true` if the user must still complete onboarding.
-    /// This allows AppCoordinator to decide whether to present the flow.
+    /// Indicates whether the user must still complete onboarding.
+    /// The AppCoordinator uses this to decide if the flow should launch.
     func needsOnboarding() -> Bool
 }
 
-// MARK: - DependencyKey / Environment Injection (optional)
+#if canImport(SwiftUI)
+import SwiftUI
+
+// MARK: - SwiftUI Environment Integration
 
 private struct OnboardingFeatureKey: EnvironmentKey {
     static let defaultValue: OnboardingFeatureInterface? = nil
 }
 
 public extension EnvironmentValues {
+    /// Dependency-injection hook for the Onboarding feature.
+    /// Example:
+    /// ```swift
+    /// @Environment(\.onboardingFeature) private var onboarding
+    /// ```
     var onboardingFeature: OnboardingFeatureInterface? {
         get { self[OnboardingFeatureKey.self] }
         set { self[OnboardingFeatureKey.self] = newValue }
     }
 }
+
+// MARK: - Convenience Helper
+
+public extension OnboardingFeatureInterface {
+    /// Provides a safe cast to `AnyView` for SwiftUI call-sites.
+    func makeOnboardingAnyView(host: OnboardingFeatureHosting) -> AnyView {
+        let root = makeOnboardingView(host: host)
+        if let v = root as? any View {
+            return AnyView(v)
+        } else {
+            return AnyView(EmptyView())
+        }
+    }
+}
+#endif

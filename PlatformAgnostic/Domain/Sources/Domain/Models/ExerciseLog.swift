@@ -1,90 +1,60 @@
-//
-//  ExerciseLog.swift
-//  Domain – Models
-//
-//  Captures a single exercise performed within a workout session.
-//  Pure data object -- free of UI, HealthKit, or persistence details.
-//
-//  ──────────────────── Design Invariants ────────────────────
-//  • Immutable value-type; all properties are let-bound.
-//  • No HRV, recovery-score, or velocity-badge data.
-//  • Codable + Hashable so logs round-trip cleanly through JSON / CoreData.
-//  • Computed helpers expose volume and effort aggregates for analytics.
-//
-//  Created for Gainz by the Core Domain team on 27 May 2025.
-//
+/// ExerciseLog.swift
 
 import Foundation
 
-/// A log entry representing one exercise performed during a `WorkoutSession`.
+/// A log of all sets performed for a single exercise during a `WorkoutSession`.
 ///
-/// Each `ExerciseLog` owns an ordered list of `SetRecord`s—one per set executed.
-/// The struct exposes convenience metrics (total volume, average RPE, etc.)
-/// that higher-level analytics can consume without re-scanning the set array.
-///
-/// ```swift
-/// let log = ExerciseLog(
-///     exerciseId: bench.id,
-///     performedSets: [
-///         .init(weight: 100, reps: 10, rir: 2),
-///         .init(weight: 100, reps: 9,  rir: 1)
-///     ],
-///     perceivedExertion: 9,
-///     notes: "Felt strong; could micro-load next week."
-/// )
-/// print(log.totalVolume) // 1900 kg•reps
-/// ```
-public struct ExerciseLog: Identifiable, Hashable, Codable {
-
+/// Each exercise log holds an ordered list of `SetRecord`s. Convenience metrics are provided
+/// to summarize the volume and effort for the exercise without recalculating each time.
+public struct ExerciseLog: Identifiable, Hashable, Codable, Sendable {
     // MARK: Core Fields
 
-    /// Stable identifier for the log entry.
+    /// Stable identifier for this exercise log.
     public let id: UUID
-
-    /// The exercise definition this log references.
+    /// Identifier of the `Exercise` that was performed.
     public let exerciseId: UUID
-
-    /// Ordered set records as they occurred in the session.
-    public let performedSets: [SetRecord]
-
-    /// Optional whole-exercise RPE (1–10) the athlete felt after final set.
+    /// Ordered list of sets completed for this exercise.
+    public private(set) var performedSets: [SetRecord]
+    /// Optional overall RPE (1–10) the athlete reported for this exercise after the final set.
     public let perceivedExertion: Int?
-
-    /// Free-form notes (form cues, pain flags, etc.).
+    /// Free-form notes about performance or technique for this exercise.
     public let notes: String?
-
-    /// Timestamp when the first set started; defaults to `Date()`.
+    /// Timestamp when the first set of this exercise started.
     public let startTime: Date
+    /// Timestamp when the final set ended. `nil` if the exercise is still in progress.
+    public private(set) var endTime: Date?
 
-    /// Timestamp when the final set ended; `nil` until auto-filled on finishing.
-    public let endTime: Date?
+    // MARK: Derived Metrics
 
-    // MARK: – Derived Metrics
-
-    /// Sum of `weight × reps` across all sets (kilogram-reps).
+    /// Total volume for this exercise (sum of `weight * reps` over all sets).
     public var totalVolume: Double {
-        performedSets.reduce(0) { $0 + ($1.weight * Double($1.reps)) }
+        performedSets.reduce(0) { $0 + $1.volume }
     }
 
-    /// Count of completed sets.
-    public var totalSets: Int { performedSets.count }
+    /// Total number of sets performed.
+    public var totalSets: Int {
+        performedSets.count
+    }
 
-    /// Mean RIR across sets, if every set has an RIR.
+    /// Average RIR across all sets (if every set has an RIR value).
     public var averageRIR: Double? {
-        let riRs = performedSets.compactMap(\.rir)
-        guard !riRs.isEmpty else { return nil }
-        return Double(riRs.reduce(0, +)) / Double(riRs.count)
+        let rirValues = performedSets.compactMap { $0.rir }
+        guard !rirValues.isEmpty else {
+            return nil
+        }
+        let sum = rirValues.reduce(0, +)
+        return Double(sum) / Double(rirValues.count)
     }
 
-    // MARK: – Init & Validation
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
+        id: UUID = UUID(),
         exerciseId: UUID,
         performedSets: [SetRecord],
         perceivedExertion: Int? = nil,
         notes: String? = nil,
-        startTime: Date = .init(),
+        startTime: Date = Date(),
         endTime: Date? = nil
     ) {
         precondition(!performedSets.isEmpty, "performedSets must not be empty.")
@@ -95,5 +65,14 @@ public struct ExerciseLog: Identifiable, Hashable, Codable {
         self.notes = notes
         self.startTime = startTime
         self.endTime = endTime
+    }
+
+    // MARK: Mutation (for logging additional sets)
+
+    /// Append a new `SetRecord` to the exercise log. Updates the end time to now.
+    /// - Parameter set: The set record to add.
+    public mutating func addSet(_ set: SetRecord) {
+        performedSets.append(set)
+        endTime = Date()
     }
 }

@@ -1,3 +1,4 @@
+// OnboardingGoalView.swift
 //
 //  OnboardingGoalView.swift
 //  Gainz
@@ -10,7 +11,7 @@ import SwiftUI
 
 // MARK: - TrainingGoal
 /// Primary objective the user selects during onboarding.
-public enum TrainingGoal: String, CaseIterable, Identifiable {
+public enum TrainingGoal: String, CaseIterable, Identifiable, Sendable {
     case hypertrophy = "Build Muscle"
     case fatLoss     = "Lose Fat"
     case strength    = "Increase Strength"
@@ -32,6 +33,7 @@ public enum TrainingGoal: String, CaseIterable, Identifiable {
 }
 
 // MARK: - OnboardingGoalView
+/// Onboarding step for selecting primary training goal.
 @MainActor
 public struct OnboardingGoalView: View {
 
@@ -95,8 +97,8 @@ public struct OnboardingGoalView: View {
                 .background(
                     Circle()
                         .fill(isSelected
-                              ? LinearGradient(colors: [Color(hex: 0x8C3DFF),
-                                                        Color(hex: 0x4925D6)],
+                              ? LinearGradient(colors: [Color.brandPurpleStart,
+                                                        Color.brandPurpleEnd],
                                                startPoint: .topLeading,
                                                endPoint: .bottomTrailing)
                               : Color.gray.opacity(0.2))
@@ -113,14 +115,14 @@ public struct OnboardingGoalView: View {
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(isSelected
-                      ? Color(hex: 0x8C3DFF, opacity: 0.15)
+                      ? Color.brandPurpleStart.opacity(0.15)
                       : Color.gray.opacity(0.08))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(isSelected
-                        ? LinearGradient(colors: [Color(hex: 0x8C3DFF),
-                                                  Color(hex: 0x4925D6)],
+                        ? LinearGradient(colors: [Color.brandPurpleStart,
+                                                  Color.brandPurpleEnd],
                                          startPoint: .topLeading,
                                          endPoint: .bottomTrailing)
                         : Color.clear,
@@ -141,7 +143,7 @@ public struct OnboardingGoalView: View {
                     LinearGradient(
                         colors: selectedGoal == nil
                         ? [Color.gray, Color.gray]
-                        : [Color(hex: 0x8C3DFF), Color(hex: 0x4925D6)],
+                        : [Color.brandPurpleStart, Color.brandPurpleEnd],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -151,19 +153,6 @@ public struct OnboardingGoalView: View {
         }
         .disabled(selectedGoal == nil)
         .accessibilityHint("Proceed to the next step of onboarding")
-    }
-}
-
-// MARK: - Color Extension
-private extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex & 0xFF0000) >> 16) / 255,
-            green: Double((hex & 0x00FF00) >> 8) / 255,
-            blue: Double(hex & 0x0000FF) / 255,
-            opacity: opacity
-        )
     }
 }
 

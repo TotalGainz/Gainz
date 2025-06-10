@@ -1,3 +1,4 @@
+// OnboardingCoordinator.swift
 //
 //  OnboardingCoordinator.swift
 //  Gainz
@@ -10,6 +11,7 @@ import SwiftUI
 import Combine
 
 // MARK: - Coordinator Route
+/// Top-level routes for controlling the app's root content.
 public enum RootRoute: Equatable {
     case onboarding
     case mainApp
@@ -18,6 +20,7 @@ public enum RootRoute: Equatable {
 // MARK: - OnboardingCoordinator
 @MainActor
 @Observable
+/// Coordinates the display of the onboarding flow versus the main app.
 public final class OnboardingCoordinator {
 
     // MARK: Published State
@@ -29,13 +32,15 @@ public final class OnboardingCoordinator {
     // MARK: Init
     public init(onboardingViewModel: OnboardingViewModel = .init()) {
         self.onboardingViewModel = onboardingViewModel
+        // Determine initial route based on onboarding completion status.
         self.route = onboardingViewModel.shouldPresentOnboarding ? .onboarding : .mainApp
 
         // Listen for onboarding completion from the ViewModel
         onboardingViewModel.objectWillChange
             .sink { [weak self] in
                 guard let self else { return }
-                if self.onboardingViewModel.shouldPresentOnboarding == false {
+                // Onboarding just finished
+                if !self.onboardingViewModel.shouldPresentOnboarding {
                     self.route = .mainApp
                 }
             }
@@ -43,6 +48,7 @@ public final class OnboardingCoordinator {
     }
 
     // MARK: Intent
+    /// Reset the onboarding flow (for testing or if user logs out).
     public func resetOnboarding() {
         onboardingViewModel.reset()
         route = .onboarding
@@ -53,7 +59,7 @@ public final class OnboardingCoordinator {
 }
 
 // MARK: - RootCoordinatorView
-/// Inject this as the root of `@main` App to automatically switch between flows.
+/// Root view that dynamically switches between onboarding and main app based on state.
 public struct RootCoordinatorView: View {
     @StateObject private var coordinator = OnboardingCoordinator()
 
@@ -63,10 +69,12 @@ public struct RootCoordinatorView: View {
         Group {
             switch coordinator.route {
             case .onboarding:
+                // Launch the onboarding flow
                 OnboardingView()
                     .environment(coordinator.onboardingViewModel)
                     .transition(.opacity)
             case .mainApp:
+                // Show the main application interface
                 // TODO: Replace `MainTabView()` with your actual main-app entry point.
                 MainTabView()
                     .transition(.opacity)
@@ -83,3 +91,36 @@ public struct RootCoordinatorView: View {
         .preferredColorScheme(.dark)
 }
 #endif
+
+// MARK: - MainApp Placeholder (Debug Only)
+#if DEBUG
+private struct MainTabView: View {
+    var body: some View {
+        Text("Main App Screen")
+            .font(.title)
+            .foregroundStyle(.secondary)
+    }
+}
+#endif
+
+// MARK: - Color & Gradient Helpers
+extension Color {
+    init(hex: UInt32, opacity: Double = 1) {
+        self.init(
+            .sRGB,
+            red: Double((hex & 0xFF0000) >> 16) / 255.0,
+            green: Double((hex & 0x00FF00) >> 8) / 255.0,
+            blue: Double(hex & 0x0000FF) / 255.0,
+            opacity: opacity
+        )
+    }
+    static let brandPurpleStart = Color(hex: 0x8C3DFF)
+    static let brandPurpleEnd   = Color(hex: 0x4925D6)
+}
+extension LinearGradient {
+    static let brandGradient = LinearGradient(
+        colors: [Color.brandPurpleStart, Color.brandPurpleEnd],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+}

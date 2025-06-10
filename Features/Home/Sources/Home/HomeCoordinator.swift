@@ -1,54 +1,51 @@
-//
-//  HomeCoordinator.swift
-//  HomeFeature
-//
-//  Root navigation orchestration for the Home tab.
-//  Owns the ViewModel, injects dependencies, and exposes a SwiftUI
-//  entry‐point that the AppCoordinator can embed in a TabView.
-//
-//  Created for Gainz on 27 May 2025.
-//
+// MARK: - HomeCoordinator.swift
 
 import SwiftUI
 import Domain
 import FeatureSupport
 
-// MARK: - HomeCoordinator
-
 public struct HomeCoordinator: View {
-
     // MARK: Dependencies
+
     private let planner: PlanRepository
     private let workoutRepo: WorkoutRepository
     private let analytics: AnalyticsService
 
     // MARK: State
-    @StateObject
-    private var viewModel: HomeViewModel
 
-    // MARK: Init
+    @StateObject private var viewModel: HomeViewModel
+
+    // MARK: Initialization
+
     public init(planner: PlanRepository,
                 workoutRepo: WorkoutRepository,
                 analytics: AnalyticsService) {
         self.planner     = planner
         self.workoutRepo = workoutRepo
         self.analytics   = analytics
-
-        // _StateObject_ requires creation in init, not property list.
-        _viewModel = StateObject(
-            wrappedValue: HomeViewModel(
-                planner: planner,
-                workoutRepo: workoutRepo,
-                analytics: analytics
-            )
-        )
+        // Instantiate the ViewModel with injected dependencies
+        _viewModel = StateObject(wrappedValue: HomeViewModel(planner: planner,
+                                                             workoutRepo: workoutRepo,
+                                                             analytics: analytics))
     }
 
-    // MARK: Body
+    // MARK: View Construction
+
     public var body: some View {
         HomeView(state: $viewModel.state) { intent in
             viewModel.send(intent)
         }
-        .onAppear { viewModel.send(.onAppear) }
+        .onAppear {
+            viewModel.send(.onAppear)
+        }
+        .refreshable {
+            // Pull-to-refresh triggers an async reload
+            await viewModel.refresh()
+        }
+        .alert(item: $viewModel.error) { err in
+            Alert(title: Text("Oops"),
+                  message: Text(err.message),
+                  dismissButton: .default(Text("OK")))
+        }
     }
 }

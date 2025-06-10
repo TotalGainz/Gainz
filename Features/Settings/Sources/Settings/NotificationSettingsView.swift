@@ -1,150 +1,116 @@
+// NotificationSettingsView.swift
+// Gainz – Settings Feature Module
 //
-//  NotificationSettingsView.swift
-//  Gainz – Settings Feature
-//
-//  SUMMARY: A SwiftUI Form that (1) displays the current push-notification
-//  authorization state; (2) lets people request permission via
-//  `UNUserNotificationCenter`; and (3) deep-links to the system’s
-//  per-app notification page using `UIApplication.openNotificationSettingsURLString`.
-//  The UI follows Apple’s HIG for toggles, forms, and notification
-//  consent flows.  [oai_citation:0‡developer.apple.com](https://developer.apple.com/design/human-interface-guidelines/notifications?utm_source=chatgpt.com) [oai_citation:1‡developer.apple.com](https://developer.apple.com/design/human-interface-guidelines/toggles?utm_source=chatgpt.com)
-//
-//  ## Key Points
-//  • Uses Combine to refresh status whenever the app becomes active.  [oai_citation:2‡mikegopsill.com](https://www.mikegopsill.com/posts/combine-publishers/?utm_source=chatgpt.com) [oai_citation:3‡stackoverflow.com](https://stackoverflow.com/questions/61000353/using-combine-to-trigger-download-on-app-activation-not-compiling?utm_source=chatgpt.com)
-//  • Requests alerts, sounds, and badges in a single call.  [oai_citation:4‡holyswift.app](https://holyswift.app/push-notifications-options-in-swiftui/?utm_source=chatgpt.com) [oai_citation:5‡developer.apple.com](https://developer.apple.com/documentation/usernotifications?utm_source=chatgpt.com) [oai_citation:6‡developer.apple.com](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications?utm_source=chatgpt.com)
-//  • Deep-links to Settings with `openNotificationSettingsURLString`.  [oai_citation:7‡developer.apple.com](https://developer.apple.com/documentation/uikit/uiapplication/opennotificationsettingsurlstring?utm_source=chatgpt.com) [oai_citation:8‡stackoverflow.com](https://stackoverflow.com/questions/74548628/how-to-open-apps-notification-settings-in-settings-app-swift-ios?utm_source=chatgpt.com) [oai_citation:9‡developer.apple.com](https://developer.apple.com/documentation/uikit/uiapplication/opensettingsurlstring?language=objc&utm_source=chatgpt.com)
-//  • No HRV or velocity-tracking logic is present by scope.
-//
-//  ## References
-//  Apple HIG – Notifications  [oai_citation:10‡developer.apple.com](https://developer.apple.com/design/human-interface-guidelines/notifications?utm_source=chatgpt.com)
-//  Toggles HIG  [oai_citation:11‡developer.apple.com](https://developer.apple.com/design/human-interface-guidelines/toggles?utm_source=chatgpt.com)
-//  UNUserNotificationCenter API  [oai_citation:12‡developer.apple.com](https://developer.apple.com/documentation/usernotifications?utm_source=chatgpt.com)
-//  iOS 18 Priority Notifications (context)  [oai_citation:13‡theverge.com](https://www.theverge.com/news/617534/ios-18-4-developer-beta-default-navigation-news-plus-food?utm_source=chatgpt.com)
-//
-//  Created by AI Auto-Generated on 2025-06-04.
-//
+// SwiftUI sub-view for managing push notification permissions and preferences.
+// Guides the user through enabling notifications via system prompts or Settings app, and shows notification options if allowed.
 
 import SwiftUI
-import UserNotifications
 import Combine
-import DesignSystem
+import CoreUI
+import UserNotifications
+import UIKit
 
+// MARK: - Notification Settings View
 @MainActor
 public struct NotificationSettingsView: View {
-
-    // MARK: - State
+    // Inherit the main settings view model via environment to update global settings (notificationsEnabled flag)
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+    
+    // Track the system authorization status for notifications
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
-    @State private var alertPresented = false
-
-    // Combine token to monitor app-active events
-    private let didBecomeActive = NotificationCenter.default
-        .publisher(for: UIApplication.didBecomeActiveNotification)
-    @State private var cancellable: AnyCancellable?
-
+    // Controls the display of an alert prompting the user to open iOS Settings when permission is denied
+    @State private var showDeniedAlert: Bool = false
+    
+    // User preference toggles for specific notification types (persisted via @AppStorage for two-way sync with UserDefaults)
+    @AppStorage("dailyReminderEnabled") private var dailyReminderEnabled: Bool = true
+    @AppStorage("weeklySummaryEnabled") private var weeklySummaryEnabled: Bool = true
+    
     public init() {}
-
-    // MARK: - Body
+    
     public var body: some View {
         Form {
-            Section {
-                HStack {
-                    Label("Permission Status", systemImage: statusIcon)
-                    Spacer()
-                    Text(statusText)
-                        .foregroundStyle(.secondary)
+            Section(header: Text("Push Notifications")) {
+                switch authorizationStatus {
+                case .authorized:
+                    // If notifications are authorized, show detailed notification options
+                    Toggle("Daily Workout Reminder", isOn: $dailyReminderEnabled)
+                    Toggle("Weekly Summary Alerts", isOn: $weeklySummaryEnabled)
+                case .denied:
+                    // If user has denied notifications, instruct and offer to open Settings
+                    Text("Notifications are currently disabled for this app.")
+                        .foregroundColor(.secondary)
+                    Button("Open Settings") {
+                        openSystemNotificationSettings()
+                    }
+                case .notDetermined:
+                    // If permission not asked yet, explain and provide enable button
+                    Text("Enable push notifications to stay informed about your workouts and progress.")
+                        .foregroundColor(.secondary)
+                    Button("Enable Notifications") {
+                        requestNotificationPermission()
+                    }
+                default:
+                    // Handle any other unknown statuses (provisional, ephemeral – not used here)
+                    Text("Notification preferences are unavailable.")
+                        .foregroundColor(.secondary)
                 }
-            }
-
-            Section {
-                Button(role: .none) {
-                    requestAuthorization()
-                } label: {
-                    Text(authorizationStatus == .authorized ? "Re-request Permission" : "Enable Notifications")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .disabled(authorizationStatus == .authorized)
-
-                Button("Open System Settings") {
-                    openSystemSettings()
-                }
-            } footer: {
-                Text("Gainz uses notifications only for workout reminders and important account alerts.")
             }
         }
-        .navigationTitle("Notification Settings")
+        .navigationTitle("Notifications")
         .onAppear {
-            fetchAuthorizationStatus()
-            observeAppActive()
+            // Fetch current notification authorization status when view appears
+            refreshAuthorizationStatus()
+            // Synchronize the global toggle with actual authorization status
+            settingsViewModel.notificationsEnabled = (authorizationStatus == .authorized)
         }
-        .onDisappear {
-            cancellable?.cancel()
+        // Listen for app returning to foreground to refresh authorization status
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            refreshAuthorizationStatus()
+            // Keep the main notificationsEnabled preference in sync after returning from Settings
+            settingsViewModel.notificationsEnabled = (authorizationStatus == .authorized)
         }
-        .alert("Notifications Disabled",
-               isPresented: $alertPresented,
-               actions: {
-                   Button("OK", role: .cancel) { }
-               },
-               message: {
-                   Text("Enable notifications in Settings to receive workout reminders.")
-               })
-        // Brand styling
-        .tint(DesignSystem.Colors.phoenixAccent)
-    }
-
-    // MARK: - Helpers
-
-    private var statusIcon: String {
-        switch authorizationStatus {
-        case .authorized:       "bell.fill"
-        case .denied:           "bell.slash.fill"
-        case .provisional:      "bell.badge.fill"
-        default:                "bell"
+        // Alert prompting user to open Settings if permission was denied via prompt
+        .alert("Notifications Disabled", isPresented: $showDeniedAlert) {
+            Button("Open Settings") {
+                openSystemNotificationSettings()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("To enable notifications, please allow them in the iOS Settings for this app.")
         }
     }
-
-    private var statusText: String {
-        switch authorizationStatus {
-        case .authorized:       "On"
-        case .denied:           "Off"
-        case .provisional:      "Provisional"
-        case .ephemeral:        "Ephemeral"
-        default:                "Unknown"
-        }
-    }
-
-    private func fetchAuthorizationStatus() {
+    
+    // MARK: - Permission Handling Methods
+    
+    /// Refresh the current notification authorization status
+    private func refreshAuthorizationStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
-            Task { @MainActor in
-                authorizationStatus = settings.authorizationStatus
+            DispatchQueue.main.async {
+                self.authorizationStatus = settings.authorizationStatus
             }
         }
     }
-
-    private func requestAuthorization() {
-        UNUserNotificationCenter.current()
-            .requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-                Task { @MainActor in
-                    fetchAuthorizationStatus()
-                    if !granted { alertPresented = true }
+    
+    /// Request push notification authorization from the system
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            DispatchQueue.main.async {
+                self.refreshAuthorizationStatus()
+                if granted {
+                    // Permission granted – update global setting to enabled
+                    settingsViewModel.notificationsEnabled = true
+                } else {
+                    // Permission denied – prompt user with an alert to manually enable in Settings
+                    self.showDeniedAlert = true
                 }
             }
+        }
     }
-
-    private func openSystemSettings() {
+    
+    /// Open the iOS Settings app directly to this app's notification settings
+    private func openSystemNotificationSettings() {
         if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
             UIApplication.shared.open(url)
         }
-    }
-
-    private func observeAppActive() {
-        cancellable = didBecomeActive
-            .sink { _ in fetchAuthorizationStatus() }
-    }
-}
-
-// MARK: - Preview
-#Preview {
-    NavigationStack {
-        NotificationSettingsView()
     }
 }

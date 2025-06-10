@@ -1,72 +1,95 @@
-//
-//  WorkoutRepository.swift
-//  Domain – Repositories
-//
-//  Contract for persisting & querying WorkoutSession aggregates.
-//  Pure protocol: no Combine, no third-party abstractions, portable to
-//  iOS, watchOS, macOS, visionOS, and server-side Swift.
-//
-//  References:
-//    • Repository design pattern in Swift – Vanderlee :contentReference[oaicite:2]{index=2}
-–   • Modernizing the pattern with Swift Concurrency – Medium :contentReference[oaicite:3]{index=3}
-//
-//  Created for Gainz on 27 May 2025.
-//
+/// ExerciseRepository.swift
 
 import Foundation
 
-// MARK: - WorkoutRepository
+// MARK: - ExerciseRepository Protocol
 
-/// Abstraction over any data store that holds `WorkoutSession`s.
-///
-/// Concrete implementations live in CorePersistence (Core Data),
-/// NetworkLayer (remote sync), or MemoryCache (unit-test stubs).
-public protocol WorkoutRepository: Sendable {
+/// Async interface for fetching and persisting `Exercise` entities.
+public protocol ExerciseRepository: Sendable {
+    // MARK: Create/Update
 
-    // MARK: Create / Update
-
-    /// Persists or replaces a full session atomically.
-    /// Implementations decide if this is an insert or update.
-    func saveSession(_ session: WorkoutSession) async throws
-
-    /// Adds or overwrites a single `SetRecord` inside a session.
-    func saveSet(
-        _ set: SetRecord,
-        forSessionID sessionID: UUID
-    ) async throws
+    /// Save or update the given exercises in the catalog.
+    /// - Throws: `ExerciseRepositoryError.persistenceFailed` on failure.
+    func save(_ exercises: [Exercise]) async throws
 
     // MARK: Read
 
-    /// Fetch a single session by ID; returns `nil` if not found.
-    func session(id: UUID) async throws -> WorkoutSession?
+    /// Fetch the entire exercise catalog, sorted alphabetically by name.
+    func fetchAll() async throws -> [Exercise]
 
-    /// Returns all sessions whose startDate falls inside `range`,
-    /// ordered ascending by startDate.
-    func sessions(
-        in range: ClosedRange<Date>
-    ) async throws -> [WorkoutSession]
+    /// Fetch a single exercise by its unique ID.
+    func fetch(byId id: UUID) async throws -> Exercise?
 
-    // MARK: Delete
+    // MARK: Observe
 
-    /// Irreversibly removes a session and all nested sets.
-    func deleteSession(id: UUID) async throws
-
-    // MARK: Streaming
-
-    /// Emits live mutations for the given session (e.g., set logged).
-    /// Domain stays reactive without importing Combine by using
-    /// Swift’s native async sequences.
-    func events(
-        forSessionID sessionID: UUID
-    ) -> AsyncThrowingStream<WorkoutEvent, Error>
+    /// Provide a live stream of the exercise catalog. Emits whenever the catalog changes.
+    func observeCatalog() -> AsyncThrowingStream<[Exercise], Error>
 }
 
-// MARK: - WorkoutEvent
-
-/// Fine-grained domain events that downstream view-models can react to.
-public enum WorkoutEvent: Sendable {
-    case setAdded(SetRecord)
-    case setUpdated(SetRecord)
-    case setDeleted(UUID)          // SetRecord.id
-    case sessionDeleted            // entire session removed
+/// Errors that an `ExerciseRepository` can throw.
+public enum ExerciseRepositoryError: Error, Equatable {
+    case persistenceFailed(underlying: Error)
+    case notFound
+    case unknown
 }
+
+// MARK: - In-Memory Implementation (for tests/debug)
+
+#if DEBUG
+/// In-memory implementation of `ExerciseRepository` for unit testing and debug builds.
+/// Uses an `actor` for thread-safe storage of exercise data.
+public final class InMemoryExerciseRepository: ExerciseRepository {
+    private actor Storage {
+        var items: [UUID: Exercise] = [:]
+
+        func insert(_ exercises: [Exercise]) {
+            for ex in exercises {
+                items[ex.id] = ex
+            }
+        }
+
+        func all() -> [Exercise] {
+            // Return exercises sorted by name
+            return items.values.sorted { $0.name < $1.name }
+        }
+
+        func get(id: UUID) -> Exercise? {
+            return items[id]
+        }
+    }
+
+    private let storage = Storage()
+    private var continuation: AsyncThrowingStream<[Exercise], Error>.Continuation?
+
+    public init(seed: [Exercise] = []) {
+        // Seed initial data in the actor
+        Task.detached { [storage] in
+            await storage.insert(seed)
+        }
+    }
+
+    public func save(_ exercises: [Exercise]) async throws {
+        await storage.insert(exercises)
+        // Notify observers of updated catalog
+        continuation?.yield(await storage.all())
+    }
+
+    public func fetchAll() async throws -> [Exercise] {
+        return await storage.all()
+    }
+
+    public func fetch(byId id: UUID) async throws -> Exercise? {
+        return await storage.get(id: id)
+    }
+
+    public func observeCatalog() -> AsyncThrowingStream<[Exercise], Error> {
+        return AsyncThrowingStream { continuation in
+            self.continuation = continuation
+            // Emit current state immediately
+            Task {
+                continuation.yield(await storage.all())
+            }
+        }
+    }
+}
+#endif

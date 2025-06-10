@@ -1,4 +1,3 @@
-//
 //  ProfileView.swift
 //  Gainz – Profile Feature
 //
@@ -67,9 +66,8 @@ private extension ProfileView {
 
             Spacer()
 
-            Button {
-                viewModel.editProfileTapped()
-            } label: {
+            // Edit button navigates to Edit Profile screen
+            NavigationLink(value: ProfileRoute.editProfile) {
                 Image(systemName: "pencil")
                     .font(.system(size: 18, weight: .semibold))
                     .padding(8)
@@ -93,12 +91,15 @@ private extension ProfileView {
         .accessibilityElement(children: .contain)
     }
 
-    // Lifetime workout résumé
+    // Lifetime workout résumé (tap to view history)
     var lifetimeSection: some View {
-        StatsSummaryView(summary: viewModel.lifetimeSummary)
-            .padding()
-            .background(ColorPalette.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+        NavigationLink(value: ProfileRoute.history) {
+            StatsSummaryView(summary: viewModel.lifetimeSummary)
+                .padding()
+                .background(ColorPalette.surfaceElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+        .accessibilityLabel("Lifetime workout stats, tap to view history")
     }
 
     // Connected apps & export
@@ -109,9 +110,8 @@ private extension ProfileView {
             }
             .toggleStyle(.switch)
 
-            Button(role: .none) {
-                viewModel.exportDataTapped()
-            } label: {
+            // Export data button navigates to DataExport screen
+            NavigationLink(value: ProfileRoute.dataExport) {
                 Label("Export Workout & Body Data", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.borderedProminent)
@@ -125,7 +125,7 @@ private extension ProfileView {
     @ViewBuilder
     var settingsShortcut: some View {
         if !viewModel.hasSeparateSettingsTab {
-            NavigationLink(destination: SettingsView(viewModel: .init())) {
+            NavigationLink(value: ProfileRoute.settings) {
                 Label("Settings", systemImage: "gearshape")
                     .font(.brandBody)
                     .padding()

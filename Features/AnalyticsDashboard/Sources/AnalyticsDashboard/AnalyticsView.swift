@@ -1,142 +1,179 @@
-//
 //  AnalyticsView.swift
-//  Features/AnalyticsDashboard
+//  AnalyticsDashboard Feature
 //
-//  Created by Gainz AI on 2025-06-03.
+//  The main Analytics dashboard view, summarizing body composition, muscle strength, and key daily metrics.
+//  Tapping tiles navigates to detailed views via the provided route callback.
 //
 
 import SwiftUI
 import CoreUI
 import Domain
-import Charts
-
-// MARK: - AnalyticsView
 
 public struct AnalyticsView: View {
     @StateObject private var viewModel: AnalyticsViewModel
+    private let onSelectRoute: ((AnalyticsRoute) -> Void)?
 
-    public init(viewModel: @autoclosure @escaping () -> AnalyticsViewModel = AnalyticsViewModel()) {
-        _viewModel = StateObject(wrappedValue: viewModel())
+    public init(analyticsUseCase: CalculateAnalyticsUseCase, onSelectRoute: ((AnalyticsRoute) -> Void)? = nil) {
+        _viewModel = StateObject(wrappedValue: AnalyticsViewModel(analyticsUseCase: analyticsUseCase))
+        self.onSelectRoute = onSelectRoute
     }
 
     public var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                header
-
-                Picker("Section", selection: $viewModel.section) {
-                    ForEach(AnalyticsSection.allCases) { section in
-                        Text(section.title).tag(section)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Header: Avatar and body stat tiles.
+                HStack(spacing: 16) {
+                    AvatarView(image: nil, badge: nil)
+                        .frame(width: 54, height: 54)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 12) {
+                        ForEach(viewModel.vitalStats.filter { stat in
+                            // Only primary body stats in header.
+                            switch stat.kind {
+                            case .weight, .bodyFat, .bmi, .ffmi: return true
+                            default: return false
+                            }
+                        }) { stat in
+                            VitalStatTileView(
+                                model: VitalStatTileModel(
+                                    kind: .weightTrend,
+                                    valueText: formatted(stat.value, unit: stat.unit),
+                                    deltaText: stat.delta.map { $0 >= 0 ? "▲ \(Int($0))" : "▼ \(abs(Int($0)))" },
+                                    isPositiveDelta: stat.delta.map { $0 >= 0 },
+                                    accent: stat.color,
+                                    systemImageName: iconOverride(for: stat.kind)
+                                ),
+                                tapAction: (stat.kind == .weight ? { onSelectRoute?(.vitalStatDetail(.weightTrend)) } : nil)
+                            )
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
+                .padding(.horizontal)
                 .padding(.top, 8)
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    switch viewModel.section {
-                    case .body: bodySection
-                    case .strength: strengthSection
-                    case .recovery: recoverySection
+                // Muscle heatmap overview.
+                if !viewModel.heatmap.isEmpty {
+                    Text("Muscle Heatmap")
+                        .font(.headline)
+                        .padding(.horizontal)
+                    ZStack {
+                        MuscleHeatmapView(analyticsUseCase: viewModel.analyticsUseCase)
+                            .allowsHitTesting(false)  // Static overview
+                        Rectangle().fill(Color.clear)  // overlay to capture tap
+                    }
+                    .frame(height: 280)
+                    .padding(.horizontal)
+                    .onTapGesture {
+                        onSelectRoute?(.muscleHeatmap)
                     }
                 }
-                .scrollDismissesKeyboard(.interactively)
-            }
-            .background(ColorPalette.backgroundPrimary.ignoresSafeArea())
-            .navigationTitle("Analytics")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: viewModel.shareTapped) {
-                        Image(systemName: "square.and.arrow.up")
+
+                // Daily metrics (e.g., steps, calories).
+                if !viewModel.vitalStats.isEmpty {
+                    Text("Daily Metrics")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(viewModel.vitalStats.filter { stat in
+                                switch stat.kind {
+                                case .steps, .calories: return true
+                                default: return false
+                                }
+                            }) { stat in
+                                SmallMetricTileView(
+                                    title: stat.kind == .steps ? "Steps" : "Calories",
+                                    value: formatted(stat.value, unit: stat.unit),
+                                    delta: stat.delta.map { $0 >= 0 ? "+\(Int($0))" : "\(Int($0))" }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 16)
                     }
-                    .accessibilityLabel("Share progress card")
                 }
+
+                // Strength progress summary.
+                Text("Strength Progress")
+                    .font(.headline)
+                    .padding(.horizontal)
+                StrengthScorecardView(analyticsUseCase: viewModel.analyticsUseCase)
+                    .padding(.horizontal)
             }
-            .sheet(isPresented: $viewModel.showLeaderboard) {
-                LeaderboardView()
-                    .environmentObject(viewModel)
+            .padding(.bottom, 32)
+        }
+        .navigationTitle("Analytics")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { viewModel.shareTapped() }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share progress card")
             }
-            .task { await viewModel.onAppear() }
+        }
+        .sheet(item: $viewModel.sharePayload) { payload in
+            ShareCardGenerator.makeShareSheet(for: payload)
+        }
+        .onAppear {
+            Task { await viewModel.refreshAll() }
+        }
+    }
+
+    /// Formats a numeric value with its unit string.
+    private func formatted(_ value: Double, unit: String) -> String {
+        let intVal = Int(value)
+        if Double(intVal) == value {
+            return unit.isEmpty ? "\(intVal)" : "\(intVal) \(unit)"
+        } else {
+            return unit.isEmpty ? "\(value)" : "\(String(format: "%.1f", value)) \(unit)"
+        }
+    }
+
+    /// Determines a custom SF Symbol name for certain stat kinds (if needed).
+    private func iconOverride(for kind: AnalyticsViewModel.VitalStatTile.Kind) -> String? {
+        switch kind {
+        case .bodyFat:   return "percent"
+        case .bmi:       return "gauge.medium"
+        case .ffmi:      return "dumbbell"
+        case .steps:     return "figure.walk"
+        case .calories:  return "flame.fill"
+        default:         return nil
         }
     }
 }
 
-// MARK: - Subviews
+// A simple view for horizontal metric tiles (e.g., Steps, Calories).
+private struct SmallMetricTileView: View {
+    let title: String
+    let value: String
+    let delta: String?
 
-private extension AnalyticsView {
-    var header: some View {
-        HStack(spacing: 16) {
-            AvatarView(image: viewModel.avatar, badge: viewModel.tier.badge)
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: 12) {
-                VitalStatTileView(title: "Weight", value: viewModel.weight, unit: viewModel.weightUnit)
-                VitalStatTileView(title: "FFMI", value: viewModel.ffmi)
-                VitalStatTileView(title: "BF %", value: viewModel.bodyFatPercent, unit: "%")
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.headline)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            if let delta = delta {
+                Text(delta)
+                    .font(.caption2)
+                    .foregroundColor(delta.hasPrefix("+") ? .green : .red)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-    }
-
-    var bodySection: some View {
-        VStack(spacing: 24) {
-            MannequinView(strengthMap: viewModel.strengthMap)
-                .frame(height: 280)
-                .accessibilityLabel("Interactive muscle strength heatmap")
-
-            metricsStrip
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 32)
-    }
-
-    var strengthSection: some View {
-        StrengthScorecardView(scorecard: viewModel.scorecard)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 32)
-    }
-
-    var recoverySection: some View {
-        RecoveryOverviewView(model: viewModel.recoveryModel)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 32)
-    }
-
-    var metricsStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 12) {
-                ForEach(viewModel.metricTiles) { tile in
-                    MetricTileView(tile: tile)
-                }
-            }
-            .padding(.horizontal, 4)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Daily metrics strip")
-    }
-}
-
-// MARK: - Supporting Types
-
-public enum AnalyticsSection: String, CaseIterable, Identifiable {
-    case body, strength, recovery
-
-    public var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .body: "Body"
-        case .strength: "Strength"
-        case .recovery: "Recovery"
-        }
+        .frame(width: 80, height: 80)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(.systemBackground))
+                .shadow(color: ShadowTokens.tile, radius: 3, x: 0, y: 2)
+        )
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    AnalyticsView()
-        .environmentObject(AnalyticsViewModel.preview)
+    NavigationStack {
+        AnalyticsView(analyticsUseCase: .preview)
+    }
 }

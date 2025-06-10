@@ -1,28 +1,31 @@
+// WorkoutCoordinator.swift
+// Features ▸ WorkoutLogger ▸ Navigation
 //
-//  WorkoutCoordinator.swift
-//  Planner ▸ Components
+// Drives navigation for the “plan → live log → summary” funnel.
+// • Pure SwiftUI + Combine (no UIKit).
+// • @MainActor for UI-safe mutations.
+// • Uses NavigationStack + NavigationPath (iOS 16+).
+// • Designed as a lightweight service; inject via EnvironmentObject.
 //
-//  Drives navigation for the “plan → log → summary” funnel.
-//  • Pure SwiftUI + Combine; no UIKit
-//  • @MainActor for UI-safe mutations
-//  • Uses NavigationStack + NavigationPath (iOS 16+)
-//
-//  Created for Gainz on 27 May 2025.
-//
+// Created for Gainz on 27 May 2025. Last revised: 09 Jun 2025.
 
 import SwiftUI
-import Domain          // MesocyclePlan, WorkoutPlan, WorkoutSession
-import CorePersistence  // WorkoutRepository
+import Domain           // MesocyclePlan, WorkoutPlan
+import CorePersistence   // WorkoutRepository
 
 // MARK: - Coordinator
 
 @MainActor
 public final class WorkoutCoordinator: ObservableObject {
 
-    // Publicly bindable navigation path
+    // MARK: Published Navigation State
+
+    /// Bindable path that feeds a NavigationStack.
     @Published public var path: NavigationPath = .init()
 
-    /// All possible navigation targets reachable from Planner.
+    // MARK: Route Enumeration
+
+    /// Exhaustive set of destinations reachable from Planner/Logger.
     public enum Route: Hashable {
         case workoutBuilder(template: MesocyclePlan)
         case workoutSession(id: UUID)
@@ -39,26 +42,27 @@ public final class WorkoutCoordinator: ObservableObject {
         self.workoutRepo = workoutRepo
     }
 
-    // MARK: Navigation API (called by Views)
+    // MARK: View-Driven Navigation API
 
-    /// Show the builder UI pre-populated with a mesocycle template.
+    /// Pushes a WorkoutBuilder pre-populated with a mesocycle template.
     public func pushBuilder(for template: MesocyclePlan) {
         path.append(Route.workoutBuilder(template: template))
     }
 
-    /// Persist a new session from `plan`, then navigate to its live logger.
+    /// Persists a new session (from `plan`) then navigates to its live logger.
     public func startSession(from plan: WorkoutPlan) async throws {
         let sessionId = try await workoutRepo.createSession(from: plan)
         path.append(Route.workoutSession(id: sessionId))
     }
 
-    /// Move to the post-workout summary screen.
-    public func finishSession(_ id: UUID) {
-        path.append(Route.workoutSummary(id: id))
+    /// Navigates from the live logger to its post-workout summary.
+    public func finishSession(_ sessionID: UUID) {
+        path.append(Route.workoutSummary(id: sessionID))
     }
 
-    /// Return to the planner root.
+    /// Pops back to the planner root.
     public func popToRoot() {
+        guard !path.isEmpty else { return }
         path.removeLast(path.count)
     }
 
@@ -80,9 +84,9 @@ public final class WorkoutCoordinator: ObservableObject {
     }
 }
 
-// MARK: - The Navigation Stack Wrapper
+// MARK: - NavigationStack Wrapper
 
-/// Wraps any “root” planner view in a NavigationStack driven by `WorkoutCoordinator`.
+/// Wraps any planner root view in a NavigationStack driven by `WorkoutCoordinator`.
 public struct WorkoutCoordinatorView<Root: View>: View {
 
     @StateObject private var coordinator: WorkoutCoordinator

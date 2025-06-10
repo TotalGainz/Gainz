@@ -1,4 +1,3 @@
-//
 //  StatsSummaryView.swift
 //  Gainz – Profile Feature
 //
@@ -7,12 +6,16 @@
 //  This view renders a concise résumé of lifetime workout stats
 //  (sessions, sets, reps, tonnage, PRs, active days) using a
 //  responsive LazyVGrid.  Design references:
-//  – Grid vs. LazyVGrid best-practices  [oai_citation:0‡avanderlee.com](https://www.avanderlee.com/swiftui/grid-lazyvgrid-lazyhgrid-gridviews/?utm_source=chatgpt.com)
+//  – Grid vs. LazyVGrid best-practices
+//    [oai_citation:0‡avanderlee.com](https://www.avanderlee.com/swiftui/grid-lazyvgrid-lazyhgrid-gridviews/?utm_source=chatgpt.com)
 //  – Flexible column sizing in LazyVGrid  [oai_citation:1‡swiftuifieldguide.com](https://www.swiftuifieldguide.com/layout/lazyvgrid/?utm_source=chatgpt.com)
 //  – RoundedRectangle + background material  [oai_citation:2‡stackoverflow.com](https://stackoverflow.com/questions/65202061/swiftui-apply-background-color-to-rounded-rectangle?utm_source=chatgpt.com) [oai_citation:3‡developer.apple.com](https://developer.apple.com/documentation/swiftui/material?utm_source=chatgpt.com)
-//  – Number formatting with fractionLength(_: )  [oai_citation:4‡medium.com](https://medium.com/%40jpmtech/formatting-numbers-in-swiftui-fc5ee2920a59?utm_source=chatgpt.com) [oai_citation:5‡developer.apple.com](https://developer.apple.com/documentation/foundation/numberformatstyleconfiguration/precision/fractionlength%28_%3A%29-w6fk?utm_source=chatgpt.com)
-//  – Custom accessibility for composite views  [oai_citation:6‡kodeco.com](https://www.kodeco.com/books/swiftui-cookbook/v1.0/chapters/5-add-custom-accessibility-content-in-swiftui-views?utm_source=chatgpt.com)
-//  – Label pattern in custom components  [oai_citation:7‡sarunw.com](https://sarunw.com/posts/how-to-use-label-in-swiftui-custom-view/?utm_source=chatgpt.com)
+//  – Number formatting with fractionLength(_: )
+//    [oai_citation:4‡medium.com](https://medium.com/%40jpmtech/formatting-numbers-in-swiftui-fc5ee2920a59?utm_source=chatgpt.com) [oai_citation:5‡developer.apple.com](https://developer.apple.com/documentation/foundation/numberformatstyleconfiguration/precision/fractionlength%28_%3A%29-w6fk?utm_source=chatgpt.com)
+//  – Custom accessibility for composite views
+//    [oai_citation:6‡kodeco.com](https://www.kodeco.com/books/swiftui-cookbook/v1.0/chapters/5-add-custom-accessibility-content-in-swiftui-views?utm_source=chatgpt.com)
+//  – Label pattern in custom components
+//    [oai_citation:7‡sarunw.com](https://sarunw.com/posts/how-to-use-label-in-swiftui-custom-view/?utm_source=chatgpt.com)
 //  – Dual-scheme previews (light/dark)  [oai_citation:8‡reddit.com](https://www.reddit.com/r/Xcode/comments/z3hjae/how_do_i_force_the_swiftui_preview_to_show_both/?utm_source=chatgpt.com) [oai_citation:9‡stackoverflow.com](https://stackoverflow.com/questions/56488228/xcode-11-swiftui-preview-dark-mode?utm_source=chatgpt.com)
 //
 
@@ -69,7 +72,11 @@ public struct StatsSummaryView: View {
         VStack(spacing: 4) {
             Text(valueString)
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-            if let unit { Text(unit).font(.caption).foregroundStyle(.secondary) }
+            if let unit {
+                Text(unit)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)

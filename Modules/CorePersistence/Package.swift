@@ -1,19 +1,4 @@
-// swift-tools-version: 5.9
-//
-//  Package.swift
-//  Modules/CorePersistence
-//
-//  Persistence layer for Gainz — wraps Core Data (or GRDB when running on Linux),
-//  provides repositories consumed by Domain & Feature modules.
-//  Pure SwiftPM; no Xcodeproj needed.
-//
-//  ────────────────────────────────────────────────────────────
-//  • Depends on Domain for model schemas.
-//  • SeedData bundled as resources (exercises.json, etc.).
-//  • Swift strict-concurrency enabled.
-//  • No UI frameworks imported.
-//  • Tests live in CorePersistenceTests.
-//
+// swift-tools-version: 5.10
 
 import PackageDescription
 
@@ -22,7 +7,8 @@ let package = Package(
     platforms: [
         .iOS(.v17),
         .watchOS(.v10),
-        .macOS(.v14),
+        .macOS(.v13),
+        .tvOS(.v17),
         .visionOS(.v1)
     ],
     products: [
@@ -33,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         // Internal domain schema
-        .package(path: "../../PlatformAgnostic/Domain"),
+        .package(path: "../Domain")
         // External option: GRDB for server-side SQLite (disabled by default)
         // .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.5.0")
     ],
@@ -42,11 +28,11 @@ let package = Package(
             name: "CorePersistence",
             dependencies: [
                 "Domain"
-                // , "GRDB"        // uncomment when using GRDB
+                // , "GRDB"    // uncomment when using GRDB
             ],
             path: "Sources",
             resources: [
-                .process("SeedData") // exercises.json etc.
+                .process("SeedData")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency=complete"),

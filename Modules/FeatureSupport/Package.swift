@@ -1,21 +1,10 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.10
+// Package.swift
+// FeatureSupport Package Manifest
 //
-//  package.swift
-//  Gainz ▸ FeatureSupport
-//
-//  Hosts shared view-model helpers, environment adapters, and reusable
-//  Combine utilities consumed by every Feature/* module. Pure SwiftPM
-//  so feature bundles can import it on iOS, watchOS, visionOS, macOS.
-//
-//  Dependencies
-//  ────────────
-//  • Domain            – value-type models & business rules
-//  • CoreUI            – design tokens, typography, colors
-//  • ServiceHealth     – permission helpers & local-notification bridge
-//  • AnalyticsService  – event emitter interfaces
-//
-//  Created 27 May 2025.
-//
+// Defines the Swift Package Manager configuration for the FeatureSupport package.
+// Specifies the package name, supported platforms (iOS 17+, watchOS 10+, macOS 13+, tvOS 17+, visionOS 1+),
+// products (the FeatureSupport library), package dependencies, and targets (source and test modules).
 
 import PackageDescription
 
@@ -23,10 +12,10 @@ let package = Package(
     name: "FeatureSupport",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v16),
-        .watchOS(.v9),
+        .iOS(.v17),
+        .watchOS(.v10),
         .macOS(.v13),
-        .tvOS(.v16),
+        .tvOS(.v17),
         .visionOS(.v1)
     ],
     products: [
@@ -36,11 +25,10 @@ let package = Package(
         )
     ],
     dependencies: [
-        // Local workspace packages
-        .package(name: "Domain",           path: "../../PlatformAgnostic/Domain"),
-        .package(name: "CoreUI",           path: "../CoreUI"),
-        .package(name: "ServiceHealth",    path: "../ServiceHealth"),
-        .package(name: "AnalyticsService", path: "../AnalyticsService")
+        .package(path: "../Domain"),
+        .package(path: "../CoreUI"),
+        .package(path: "../ServiceHealth"),
+        .package(path: "../AnalyticsService")
     ],
     targets: [
         .target(

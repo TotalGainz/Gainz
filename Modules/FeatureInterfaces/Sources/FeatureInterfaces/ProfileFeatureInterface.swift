@@ -1,4 +1,3 @@
-//
 //  ProfileFeatureInterface.swift
 //  FeatureInterfaces
 //
@@ -16,7 +15,6 @@
 //
 //  Created for Gainz on 27 May 2025.
 //
-
 import SwiftUI
 import Domain            // UserProfile model, value types
 
@@ -24,7 +22,7 @@ import Domain            // UserProfile model, value types
 
 /// Dependency-injection surface for constructing a profile flow.
 /// Conforming types live in the *implementation* target.
-public protocol ProfileFeatureBuilding {
+public protocol ProfileFeatureBuilding: AnyObject {
 
     /// Produces the root SwiftUI view for the athlete’s profile.
     ///
@@ -49,7 +47,6 @@ private struct ProfileFeatureBuilderKey: EnvironmentKey {
 }
 
 public extension EnvironmentValues {
-
     /// Accessor for the DI builder.
     var profileFeatureBuilder: ProfileFeatureBuilding? {
         get { self[ProfileFeatureBuilderKey.self] }
@@ -60,7 +57,6 @@ public extension EnvironmentValues {
 // MARK: - Convenience View Modifier
 
 public extension View {
-
     /// Presents the profile sheet when `isPresented` toggles `true`.
     func profileSheet(
         isPresented: Binding<Bool>,
@@ -78,7 +74,6 @@ public extension View {
 // MARK: - ProfileSheetModifier
 
 private struct ProfileSheetModifier: ViewModifier {
-
     @Environment(\.profileFeatureBuilder) private var builder
     @Binding var isPresented: Bool
     let userProfile: UserProfile

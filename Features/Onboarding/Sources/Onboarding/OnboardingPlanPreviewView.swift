@@ -1,3 +1,4 @@
+// OnboardingPlanPreviewView.swift
 //
 //  OnboardingPlanPreviewView.swift
 //  Gainz
@@ -9,7 +10,7 @@
 import SwiftUI
 
 // MARK: - PlanPreview Model
-public struct PlanPreview: Identifiable {
+public struct PlanPreview: Identifiable, Sendable {
     public let id = UUID()
     public let goal: TrainingGoal
     public let experience: TrainingExperience
@@ -18,6 +19,7 @@ public struct PlanPreview: Identifiable {
 }
 
 // MARK: - OnboardingPlanPreviewView
+/// Final onboarding step displaying the personalized plan summary.
 @MainActor
 public struct OnboardingPlanPreviewView: View {
 
@@ -139,9 +141,9 @@ public struct OnboardingPlanPreviewView: View {
                 .font(.system(.headline, weight: .semibold, design: .rounded))
                 .frame(maxWidth: .infinity, minHeight: 56)
                 .background(
-                    LinearGradient(colors: [Color(hex: 0x8C3DFF), Color(hex: 0x4925D6)],
-                                   startPoint: .topLeading,
-                                   endPoint: .bottomTrailing)
+                    LinearGradient.brandGradient,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -150,28 +152,11 @@ public struct OnboardingPlanPreviewView: View {
     }
 }
 
-// MARK: - Color Helper
-private extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(.sRGB,
-                  red: Double((hex & 0xFF0000) >> 16) / 255,
-                  green: Double((hex & 0x00FF00) >> 8) / 255,
-                  blue: Double(hex & 0x0000FF) / 255,
-                  opacity: opacity)
-    }
-}
-
 // MARK: - Preview
 #if DEBUG
 #Preview {
-    let prefs = UserPreferences(notifications: true,
-                                healthSync: true,
-                                metricUnits: false,
-                                newsletter: true)
-    let preview = PlanPreview(goal: .hypertrophy,
-                              experience: .intermediate,
-                              frequency: .five,
-                              preferences: prefs)
+    let prefs = UserPreferences(notifications: true, healthSync: true, metricUnits: false, newsletter: true)
+    let preview = PlanPreview(goal: .hypertrophy, experience: .intermediate, frequency: .five, preferences: prefs)
     OnboardingPlanPreviewView(preview: preview) { }
         .preferredColorScheme(.dark)
 }

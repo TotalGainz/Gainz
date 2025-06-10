@@ -1,44 +1,44 @@
 // swift-tools-version: 5.10
+
 import PackageDescription
 
 let package = Package(
     name: "AnalyticsDashboard",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v17),
-        .macCatalyst(.v17)
+        .iOS(.v17)
     ],
     products: [
         .library(
             name: "AnalyticsDashboard",
+            type: .dynamic,
             targets: ["AnalyticsDashboard"]
         )
     ],
     dependencies: [
-        // Local, in-repo modules
-        .package(path: "../../CoreDesignSystem"),
-        .package(path: "../../CorePersistence"),
-        .package(path: "../../CoreNetworking"),
-        .package(path: "../../SharedModels"),
-        .package(path: "../../Utilities")
+        .package(path: "../../Modules/CoreUI"),
+        .package(path: "../../Modules/Domain"),
+        .package(path: "../../Modules/AnalyticsService"),
+        .package(path: "../../Modules/FeatureInterfaces")
     ],
     targets: [
         .target(
             name: "AnalyticsDashboard",
             dependencies: [
-                "CoreDesignSystem",
-                "CorePersistence",
-                "CoreNetworking",
-                "SharedModels",
-                "Utilities"
+                "CoreUI",
+                "Domain",
+                "AnalyticsService",
+                "FeatureInterfaces"
             ],
-            path: "Sources"
+            path: "Sources",
+            swiftSettings: [
+                .unsafeFlags(["-warnings-as-errors"])
+            ]
         ),
         .testTarget(
             name: "AnalyticsDashboardTests",
             dependencies: ["AnalyticsDashboard"],
             path: "Tests"
         )
-    ],
-    swiftLanguageVersions: [.v5]
+    ]
 )

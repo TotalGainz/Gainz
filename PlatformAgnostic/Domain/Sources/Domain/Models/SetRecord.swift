@@ -1,74 +1,51 @@
-//
-//  SetRecord.swift
-//  Domain – Models
-//
-//  Captures a single set within an ExerciseLog.
-//  Design follows research-backed metrics: weight, reps, RIR or RPE.
-//  No HRV, recovery scores, or velocity tracking.
-//
-//  References:
-//  - NASM on Reps-in-Reserve :contentReference[oaicite:0]{index=0}
- // - NASM on RPE scale :contentReference[oaicite:1]{index=1}
- // - Volume-load formula (Sets × Reps × Weight) :contentReference[oaicite:2]{index=2}
- // - Reliability of RIR for load prescription (J Strength Cond Res 2022) :contentReference[oaicite:3]{index=3}
- // - Modified Borg CR-10 RPE scale :contentReference[oaicite:4]{index=4}
- // - Practical RIR usage in hypertrophy training :contentReference[oaicite:5]{index=5}
-//
-//  Created by Gainz Core Team on 27 May 2025.
-//
+/// SetRecord.swift
 
 import Foundation
 
-/// Immutable value representing one executed set.
+/// Represents one executed set within an `ExerciseLog`.
 ///
-/// ```swift
-/// let topSet = SetRecord(weight: 120, reps: 6, rir: 1)
-/// print(topSet.volume) // 720 kg•reps
-/// ```
-public struct SetRecord: Identifiable, Hashable, Codable {
-
+/// Captures weight, reps, and effort metrics for the set. Both RIR (reps in reserve)
+/// and RPE (rate of perceived exertion) are optional; typically one or the other is used.
+public struct SetRecord: Identifiable, Hashable, Codable, Sendable {
     // MARK: Identity
-
-    /// Unique identifier for diffing & persistence.
     public let id: UUID
 
-    // MARK: Loaded Fields
-
-    /// Load in **kilograms**; convert at UI layer if user prefers pounds.
+    // MARK: Performance Data
+    /// Load used in this set, in kilograms.
     public let weight: Double
-
-    /// Completed repetitions (≥ 0).
+    /// Number of repetitions completed.
     public let reps: Int
-
-    /// Reps-in-Reserve (0 = failure, 1–4 = proximity), optional.
+    /// Reps-in-Reserve after this set (0 = failure, 1–4 = stopped shy of failure). Optional.
     public let rir: Int?
-
-    /// Single-set RPE (1–10), optional alternative to RIR.
-    public let rpe: Int?
-
-    /// Optional cadence in “ecc-pause-con-pause” seconds (e.g., `40X1` = 4-0-fast-1).
+    /// Rate of Perceived Exertion for this set (1–10 scale). Optional alternative to RIR.
+    public let rpe: RPE?
+    /// Tempo notation (e.g., "40X1" for 4-sec eccentric, 0 pause, explosive concentric, 1-sec pause). Optional.
     public let tempo: String?
 
-    // MARK: Derived
+    // MARK: Derived Metric
+    /// Volume load of the set, defined as `weight * reps` (in kg·reps).
+    public var volume: Double {
+        weight * Double(reps)
+    }
 
-    /// Simple volume-load metric (kg × reps).
-    public var volume: Double { weight * Double(reps) }
-
-    // MARK: Init
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
+        id: UUID = UUID(),
         weight: Double,
         reps: Int,
         rir: Int? = nil,
-        rpe: Int? = nil,
+        rpe: RPE? = nil,
         tempo: String? = nil
     ) {
-        precondition(weight > 0, "Weight must be > 0 kg")
-        precondition(reps >= 0, "Reps must be non-negative")
-        if let rir = rir { precondition((0...5).contains(rir), "RIR must be 0–5") }
-        if let rpe = rpe { precondition((1...10).contains(rpe), "RPE must be 1–10") }
-
+        precondition(weight >= 0, "Weight must be non-negative (kg).")
+        precondition(reps >= 0, "Reps must be non-negative.")
+        if let rir = rir {
+            precondition((0...5).contains(rir), "RIR must be between 0 and 5.")
+        }
+        if let rpe = rpe {
+            precondition((1...10).contains(rpe.rawValue), "RPE must be between 1 and 10.")
+        }
         self.id = id
         self.weight = weight
         self.reps = reps
@@ -76,4 +53,9 @@ public struct SetRecord: Identifiable, Hashable, Codable {
         self.rpe = rpe
         self.tempo = tempo
     }
+}
+
+/// Discrete values for RPE (Rate of Perceived Exertion) on a 1–10 scale.
+public enum RPE: Int, Codable, CaseIterable, Sendable {
+    case one = 1, two, three, four, five, six, seven, eight, nine, ten
 }

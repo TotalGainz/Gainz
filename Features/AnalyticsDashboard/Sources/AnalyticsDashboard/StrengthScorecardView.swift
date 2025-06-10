@@ -1,42 +1,34 @@
-//
 //  StrengthScorecardView.swift
 //  Gainz – AnalyticsDashboard Feature
 //
-//  Displays current 1-RM progress for the five core lifts using
-//  minimalist radial progress rings inspired by Swift Charts’ new
-//  `SectorMark` and custom `Circle` overlays [oai_citation:0‡swiftwithmajid.com](https://swiftwithmajid.com/2023/09/26/mastering-charts-in-swiftui-pie-and-donut-charts/?utm_source=chatgpt.com) [oai_citation:1‡sarunw.com](https://sarunw.com/posts/swiftui-circular-progress-bar/?utm_source=chatgpt.com) [oai_citation:2‡swiftwithmajid.com](https://swiftwithmajid.com/2023/01/26/mastering-charts-in-swiftui-custom-marks/?utm_source=chatgpt.com) [oai_citation:3‡appcoda.com](https://www.appcoda.com/swiftui-chart-ios17/?utm_source=chatgpt.com) [oai_citation:4‡medium.com](https://medium.com/devtechie/donut-chart-in-swiftui-6adbca7b964f?utm_source=chatgpt.com).
-//  Layout principles borrow from modern weight-lifting dashboards
-//  to maintain rapid at-a-glance clarity for strength athletes [oai_citation:5‡patrickspafford.com](https://patrickspafford.com/blog/building-a-weightlifting-app-with-swiftui/?utm_source=chatgpt.com).
-//
-//  Created by AI-Assistant on 2025-06-03.
-//  Licensed to Echelon Commerce LLC.
+//  Shows the user's progress toward target one-rep maxes for core lifts using radial progress rings.
+//  Each ring indicates current 1RM vs target 1RM for a lift (e.g., Squat, Bench Press), animating as progress fills.
 //
 
 import SwiftUI
-import Domain   // LiftKind (squat, bench, deadlift, ohp, row)
-import CoreUI   // ColorPalette, ShadowTokens
+import Domain   // LiftKind definitions for exercise types
+import CoreUI   // ColorPalette, ShadowTokens for styling
 
-// MARK: - ViewModel
+// MARK: - Data Model
 
-/// Lightweight binding so the view remains preview-friendly & testable.
+/// Data model representing a single lift's strength progress.
 public struct StrengthLiftModel: Identifiable, Hashable {
     public let id = UUID()
-    public let kind: LiftKind
-    public let current1RM: Double    // kg
-    public let target1RM: Double     // kg
-    
-    public var progress: Double { min(current1RM / target1RM, 1.0) }
-    public var liftName: String { kind.rawValue.uppercased() }
-    public var iconName: String {
-        switch kind {
-        case .squat:       "figure.strengthtraining.traditional"
-        case .benchPress:  "figure.strengthtraining.traditional"
-        case .deadlift:    "figure.strengthtraining.traditional"
-        case .overheadPress: "figure.strengthtraining.traditional"
-        case .barbellRow:  "figure.strengthtraining.traditional"
-        }
+    public let kind: LiftKind            // Lift type (e.g., squat, benchPress).
+    public let current1RM: Double       // Current one-rep max in kg.
+    public let target1RM: Double        // Target one-rep max goal in kg.
+
+    public var progress: Double {
+        min(current1RM / target1RM, 1.0)
     }
-    
+    public var liftName: String {
+        kind.rawValue.uppercased()
+    }
+    public var iconName: String {
+        // Using a generic weightlifting icon for all lifts.
+        "figure.strengthtraining.traditional"
+    }
+
     public init(kind: LiftKind, current1RM: Double, target1RM: Double) {
         self.kind = kind
         self.current1RM = current1RM
@@ -47,20 +39,22 @@ public struct StrengthLiftModel: Identifiable, Hashable {
 // MARK: - Main View
 
 public struct StrengthScorecardView: View {
-    
-    // MARK: Injection
-    @State public var lifts: [StrengthLiftModel]
-    
-    // MARK: Grid config
+    @StateObject private var viewModel: StrengthScorecardVM
+
+    // Two-column grid for lift tiles.
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
     ]
-    
+
+    public init(analyticsUseCase: CalculateAnalyticsUseCase) {
+        _viewModel = StateObject(wrappedValue: StrengthScorecardVM(analyticsUseCase: analyticsUseCase))
+    }
+
     public var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 24) {
-                ForEach(lifts) { lift in
+                ForEach(viewModel.lifts) { lift in
                     LiftRingTile(model: lift)
                 }
             }
@@ -69,40 +63,62 @@ public struct StrengthScorecardView: View {
         }
         .navigationTitle("Strength Scorecard")
         .background(Color(uiColor: .systemGroupedBackground))
+        .task {
+            await viewModel.refresh()
+        }
     }
 }
 
-// MARK: - Sub-Component
+// MARK: - ViewModel
 
+@MainActor
+private final class StrengthScorecardVM: ObservableObject {
+    private let analyticsUseCase: CalculateAnalyticsUseCase
+    @Published var lifts: [StrengthLiftModel] = []
+
+    init(analyticsUseCase: CalculateAnalyticsUseCase) {
+        self.analyticsUseCase = analyticsUseCase
+    }
+
+    /// Fetches current vs target 1RM for core lifts.
+    func refresh() async {
+        lifts = await analyticsUseCase.currentLiftProgress()
+    }
+}
+
+// MARK: - Subviews
+
+/// A tile showing a lift's progress ring and details.
 private struct LiftRingTile: View {
-    
     let model: StrengthLiftModel
-    
+
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
-                // Background track
+                // Background track circle.
                 Circle()
                     .stroke(Color.secondary.opacity(0.2), lineWidth: 10)
-                // Progress ring (animated)
+                // Progress ring (trimmed circle).
                 Circle()
                     .trim(from: 0, to: CGFloat(model.progress))
                     .stroke(
-                        AngularGradient(
-                            gradient: Gradient(colors: [ColorPalette.phoenix, ColorPalette.phoenix.opacity(0.5)]),
-                            center: .center),
+                        AngularGradient(gradient: Gradient(colors: [
+                                        ColorPalette.phoenix,
+                                        ColorPalette.phoenix.opacity(0.5)
+                                     ]),
+                                     center: .center),
                         style: StrokeStyle(lineWidth: 10, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(response: 0.6, dampingFraction: 0.8), value: model.progress)
-                // Icon
+                // Lift icon at center.
                 Image(systemName: model.iconName)
                     .font(.system(size: 26, weight: .bold))
                     .foregroundColor(ColorPalette.phoenix)
             }
             .frame(width: 100, height: 100)
             .shadow(color: ShadowTokens.tile, radius: 6, x: 0, y: 4)
-            
+
             VStack(spacing: 2) {
                 Text(model.liftName)
                     .font(.headline)
@@ -120,33 +136,11 @@ private struct LiftRingTile: View {
     }
 }
 
-// MARK: - Domain Stub (until integrated with real models)
-
-/// Strength lifts relevant for scorecard.  Kept internal to file for now.
-/// Replace with shared `Domain/LiftKind.swift` when available.
-enum LiftKind: String, CaseIterable {
-    case squat = "Squat"
-    case benchPress = "Bench"
-    case deadlift = "Deadlift"
-    case overheadPress = "OHP"
-    case barbellRow = "Row"
-}
-
 // MARK: - Preview
 
-#if DEBUG
-struct StrengthScorecardView_Previews: PreviewProvider {
-    static var previews: some View {
-        StrengthScorecardView(
-            lifts: [
-                .init(kind: .squat, current1RM: 170, target1RM: 180),
-                .init(kind: .benchPress, current1RM: 125, target1RM: 140),
-                .init(kind: .deadlift, current1RM: 200, target1RM: 220),
-                .init(kind: .overheadPress, current1RM: 80, target1RM: 90),
-                .init(kind: .barbellRow, current1RM: 110, target1RM: 120)
-            ]
-        )
-        .preferredColorScheme(.dark)
+#Preview {
+    NavigationStack {
+        StrengthScorecardView(analyticsUseCase: .preview)
+            .preferredColorScheme(.dark)
     }
 }
-#endif

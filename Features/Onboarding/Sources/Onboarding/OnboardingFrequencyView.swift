@@ -1,3 +1,4 @@
+// OnboardingFrequencyView.swift
 //
 //  OnboardingFrequencyView.swift
 //  Gainz
@@ -9,7 +10,7 @@
 import SwiftUI
 
 // MARK: - TrainingFrequency
-public enum TrainingFrequency: Int, CaseIterable, Identifiable {
+public enum TrainingFrequency: Int, CaseIterable, Identifiable, Sendable {
     case two = 2, three, four, five, six, seven
 
     public var id: Int { rawValue }
@@ -18,6 +19,7 @@ public enum TrainingFrequency: Int, CaseIterable, Identifiable {
 }
 
 // MARK: - OnboardingFrequencyView
+/// Onboarding step for selecting weekly training frequency.
 @MainActor
 public struct OnboardingFrequencyView: View {
 
@@ -64,9 +66,9 @@ public struct OnboardingFrequencyView: View {
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                             selected = freq
                         }
-#if os(iOS)
+                        #if os(iOS)
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-#endif
+                        #endif
                     }
             }
         }
@@ -108,7 +110,7 @@ public struct OnboardingFrequencyView: View {
                     LinearGradient(
                         colors: selected == nil
                         ? [Color.gray, Color.gray]
-                        : [Color(hex: 0x8C3DFF), Color(hex: 0x4925D6)],
+                        : [Color.brandPurpleStart, Color.brandPurpleEnd],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -118,19 +120,6 @@ public struct OnboardingFrequencyView: View {
         }
         .disabled(selected == nil)
         .accessibilityHint("Save your weekly training frequency and continue")
-    }
-}
-
-// MARK: - Color Extension
-private extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex & 0xFF0000) >> 16) / 255,
-            green: Double((hex & 0x00FF00) >> 8) / 255,
-            blue: Double(hex & 0x0000FF) / 255,
-            opacity: opacity
-        )
     }
 }
 

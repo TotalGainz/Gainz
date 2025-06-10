@@ -1,18 +1,15 @@
 # ================================================================
-# Gainz — project.yml
-# XcodeGen manifest that builds an iOS-first, Swift-PM modular
-# workspace with CI-grade scripts, watchOS hooks, and Core ML
-# readiness. Tweak identifiers/paths as needed before first run.
+# Gainz — project.yml  (2025-07-06 • resolves CoreDesignSystem and drops SwiftLintPlugin)
 # ================================================================
 
 name: Gainz
+
 options:
   bundleIdPrefix: app.gainz
-  xcodeVersion: "15.3"
   deploymentTarget:
     iOS: "17.0"
+  xcodeVersion: "15.3"
   postGenCommand: |
-    # Auto-resolve SPMs after generation
     xcodebuild -resolvePackageDependencies -project Gainz.xcodeproj
 
 configs:
@@ -21,43 +18,122 @@ configs:
 
 settings:
   base:
+    DEVELOPMENT_TEAM: YOUR_TEAM_ID        # ← replace with your 10-char team ID
     SWIFT_VERSION: "5.9"
-    ENABLE_PREVIEWS: YES
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: YOUR_TEAM_ID   # ← replace
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: 1
+    ENABLE_PREVIEWS: YES
     IPHONEOS_DEPLOYMENT_TARGET: $(DEPLOYMENT_TARGET)
     OTHER_SWIFT_FLAGS[config=Debug]: "-Xfrontend -warn-long-function-bodies=200"
 
+# ────────── Swift-PM packages ──────────
 packages:
   Algorithms:
     url: https://github.com/apple/swift-algorithms
-    from: 1.2.0
+    from: "1.2.0"
+
   Collections:
     url: https://github.com/apple/swift-collections
-    from: 1.1.0
-  SwiftLintPlugin:
-    url: https://github.com/realm/SwiftLint
-    exact: 0.55.0
+    from: "1.1.0"
 
+  # Core / shared local modules
+  Domain:
+    path: "./PlatformAgnostic/Domain"
+
+  CorePersistence:
+    path: "./Modules/CorePersistence"
+
+  CoreNetworking:
+    path: "./Modules/CoreNetworking"
+
+  CoreUI:
+    path: "./Modules/CoreUI"
+
+  AnalyticsService:
+    path: "./Modules/AnalyticsService"
+
+  ServiceHealth:
+    path: "./Modules/ServiceHealth"
+
+  FeatureInterfaces:
+    path: "./Modules/FeatureInterfaces"
+
+  FeatureSupport:
+    path: "./Modules/FeatureSupport"
+
+  # NEW – stubbed design-system package
+  CoreDesignSystem:
+    path: "./CoreDesignSystem"
+
+  # Feature modules
+  Home:
+    path: "./Features/Home"
+
+  Planner:
+    path: "./Features/Planner"
+
+  WorkoutLogger:
+    path: "./Features/WorkoutLogger"
+
+  AnalyticsDashboard:
+    path: "./Features/AnalyticsDashboard"
+
+  Profile:
+    path: "./Features/Profile"
+
+  Settings:
+    path: "./Features/Settings"
+
+  Onboarding:
+    path: "./Features/Onboarding"
+
+# ────────── Targets ──────────
 targets:
-  # ──────────────────────────────────────────────────────────────
   Gainz:
-    platform: iOS
     type: application
+    platform: iOS
     deploymentTarget: "17.0"
-    sources: [App/Sources]
-    resources: [App/Resources]
-    info: App/Supporting/Info.plist
-    entitlements: App/Supporting/Gainz.entitlements
-    dependencies:
-      - target: CoreKit
-      - package: Algorithms
-      - package: Collections
+
+    sources: [iOSApp]
+    resources: [iOSApp/Resources]
+
+    info:
+      path: iOSApp/Info.plist
+      properties: {}
+
+    entitlements:
+      path: iOSApp/Resources/Gainz.entitlements
+
     settings:
       base:
-        TARGETED_DEVICE_FAMILY: "1"      # iPhone only for now
+        TARGETED_DEVICE_FAMILY: "1"
+
+    dependencies:
+      # Core / shared
+      - package: Domain
+      - package: CorePersistence
+      - package: CoreNetworking
+      - package: CoreUI
+      - package: AnalyticsService
+      - package: ServiceHealth
+      - package: FeatureInterfaces
+      - package: FeatureSupport
+      - package: CoreDesignSystem    # new local package
+
+      # Feature modules
+      - package: Home
+      - package: Planner
+      - package: WorkoutLogger
+      - package: AnalyticsDashboard
+      - package: Profile
+      - package: Settings
+      - package: Onboarding
+
+      # Remote utilities
+      - package: Algorithms
+      - package: Collections
+
     scripts:
       - name: SwiftLint
         basedOnDependencyAnalysis: false
@@ -67,30 +143,25 @@ targets:
           else
             echo "warning: SwiftLint not installed"
           fi
-      - name: SwiftFormat
+
+      - name: SwiftGen
         basedOnDependencyAnalysis: false
         script: |
-          if which swiftformat >/dev/null; then
-            swiftformat --lint .
+          if which swiftgen >/dev/null; then
+            swiftgen run
           else
-            echo "warning: SwiftFormat not installed"
+            echo "warning: SwiftGen not installed"
           fi
+
       - name: Increment Build Number
         script: |
-          buildNumber=$(git rev-list --count HEAD)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
-
-  CoreKit:
-    platform: iOS
-    type: framework
-    deploymentTarget: "17.0"
-    sources: [CoreKit/Sources]
-    dependencies:
-      - package: Collections
+          build=$(git rev-list --count HEAD)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" \
+            "${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
 
   GainzTests:
-    platform: iOS
     type: bundle.unit-test
+    platform: iOS
     deploymentTarget: "17.0"
     sources: [Tests]
     dependencies:
@@ -99,18 +170,16 @@ targets:
       base:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Gainz.app/Gainz"
 
+# ────────── Schemes ──────────
 schemes:
   Gainz:
     build:
-      targets:
-        Gainz: all
+      targets: { Gainz: all }
     run:
       config: Debug
     test:
-      targets:
-        - GainzTests
+      targets: [GainzTests]
     archive:
       config: Release
     profile:
       config: Release
-

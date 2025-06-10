@@ -3,9 +3,9 @@
 //  Features ▸ Planner ▸ Components
 //
 //  Small, tappable card that surfaces a single planned workout.
-//  • Dark-slate background with 24-pt corners and subtle shadow
-//  • 2-pt phoenix gradient stroke (Indigo → Violet)
-//  • Auto-scales with Dynamic Type; VoiceOver friendly
+//  • Dark slate background with 24-pt corners and subtle shadow.
+//  • 2-pt “phoenix” gradient stroke (Indigo → Violet) around the card.
+//  • Auto-scales with Dynamic Type; fully VoiceOver accessible.
 //
 //  Created for Gainz on 27 May 2025.
 //
@@ -17,7 +17,6 @@ import CoreUI   // Design tokens (colors, fonts)
 // MARK: - WorkoutCardView
 
 public struct WorkoutCardView: View {
-
     // MARK: Input
     public let plan: WorkoutPlan
     public var onTap: (() -> Void)?
@@ -35,8 +34,7 @@ public struct WorkoutCardView: View {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(phoenixGradient, lineWidth: 2)
                 )
-                .shadow(color: .black.opacity(0.28),
-                        radius: 12, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.28), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityElement(children: .combine)
@@ -45,58 +43,49 @@ public struct WorkoutCardView: View {
 
     // MARK: Sub-views
 
+    /// The inner content of the workout card.
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 8) {
-
-            // Title
+            // Title of the workout
             Text(plan.title)
                 .font(.headline.weight(.semibold))
                 .foregroundColor(.textPrimary)
                 .lineLimit(1)
-
-            // Date
+            // Date of the workout
             Text(plan.date, style: .date)
                 .font(.subheadline)
                 .foregroundColor(.textSecondary)
-
             Divider().background(Color.border)
-
-            // Stats Row
+            // Stats row: duration, sets, exercise count
             HStack(spacing: 16) {
                 statView(icon: "clock.fill",
                          value: plan.estimatedDuration.string,
                          label: "min")
-
                 statView(icon: "flame.fill",
                          value: "\(plan.totalSets)",
                          label: "sets")
-
                 statView(icon: "repeat",
                          value: "\(plan.exercises.count)",
                          label: "moves")
             }
             .font(.caption)
+            .foregroundColor(.textSecondary)
         }
     }
 
-    @ViewBuilder
-    private func statView(icon: String,
-                          value: String,
-                          label: String) -> some View {
-        HStack(spacing: 4) {
+    /// A small view for an individual stat with SF Symbol icon, value, and label.
+    private func statView(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 2) {
             Image(systemName: icon)
-                .font(.caption2)
-                .foregroundColor(.accent)
             Text(value)
-                .foregroundColor(.textPrimary)
-                .bold()
+                .fontWeight(.semibold)
             Text(label)
-                .foregroundColor(.textSecondary)
         }
     }
 
-    // MARK: Styling helpers
+    // MARK: Styling Helpers
 
+    /// The purple “Phoenix” gradient used for the card border.
     private var phoenixGradient: LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [Color.accentStart, Color.accentEnd]),
@@ -105,6 +94,7 @@ public struct WorkoutCardView: View {
         )
     }
 
+    /// Accessibility label combining key info.
     private var accessibilityLabel: String {
         "\(plan.title), \(plan.totalSets) sets, \(plan.exercises.count) exercises"
     }

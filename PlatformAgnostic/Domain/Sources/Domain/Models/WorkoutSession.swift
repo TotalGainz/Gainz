@@ -1,91 +1,90 @@
-//
-//  WorkoutSession.swift
-//  Domain – Models
-//
-//  Aggregate root representing a full workout event.
-//  Holds ordered logs for each exercise performed, timestamps,
-//  and convenience analytics (total volume, duration, etc.).
-//
-//  ─────────────────── Design Invariants ───────────────────
-//  • Pure value-type (struct) — platform-agnostic, no UIKit/SwiftUI.
-//  • Encodes only hypertrophy-centric data; no HRV or bar-velocity.
-//  • Immutable public API; mutations occur via copy-on-write builders.
-//  • Codable + Hashable for seamless persistence & diffing.
-//
-//  Created for Gainz by the Core Domain team on 27 May 2025.
-//
+/// WorkoutSession.swift
 
 import Foundation
 
-// MARK: - WorkoutSession
-
-/// A complete training session from first warm-up to final cooldown.
+/// Aggregate root representing a completed (or in-progress) workout session.
 ///
-/// The session is immutable once finalised; during live logging, the Logger
-/// produces a mutable `WorkoutSessionBuilder` that assembles logs before
-/// returning this struct when the athlete taps **Finish**.
-public struct WorkoutSession: Identifiable, Hashable, Codable {
-
+/// A `WorkoutSession` contains all exercise logs performed on a given day, along with
+/// timestamps and summary metrics. It is immutable once finalized; during live logging,
+/// use a mutable builder or the `LogWorkoutUseCase` to construct it incrementally.
+public struct WorkoutSession: Identifiable, Hashable, Codable, Sendable {
     // MARK: Core Fields
 
-    /// Stable identifier for the session.
+    /// Unique identifier for the session.
     public let id: UUID
-
-    /// Calendar day the session belongs to (local time zone).
+    /// Calendar date of the session (local time zone).
     public let date: Date
-
-    /// Ordered exercise logs in the sequence they were performed.
-    public let exerciseLogs: [ExerciseLog]
-
-    /// Timestamp when the athlete pressed **Start Workout**.
+    /// Ordered logs for each exercise performed in this session.
+    public private(set) var exerciseLogs: [ExerciseLog]
+    /// Timestamp when the session was started.
     public let startTime: Date
-
-    /// Timestamp when **Finish** was pressed (or auto-filled on timeout).
-    public let endTime: Date
-
-    /// Free-form notes about the overall workout (energy, mood, injuries).
+    /// Timestamp when the session was finished (or marked as ended).
+    public private(set) var endTime: Date?
+    /// Optional notes about the entire session (e.g., energy level, injuries).
     public let notes: String?
+    /// Optional identifier of the `WorkoutPlan` this session was based on (if any).
+    public let planId: UUID?
 
-    // MARK: – Derived Metrics
+    // MARK: Derived Metrics
 
-    /// Total kilogram-reps across all exercises.
+    /// Total volume (kg·reps) across all exercises in this session.
     public var totalVolume: Double {
         exerciseLogs.reduce(0) { $0 + $1.totalVolume }
     }
 
-    /// Count of logged sets across the workout.
+    /// Total number of sets logged in this session.
     public var totalSets: Int {
         exerciseLogs.reduce(0) { $0 + $1.totalSets }
     }
 
-    /// Duration in seconds between `startTime` and `endTime`.
-    public var duration: TimeInterval { endTime.timeIntervalSince(startTime) }
+    /// Total duration of the session in seconds.
+    public var duration: TimeInterval {
+        guard let endTime = endTime else { return 0 }
+        return endTime.timeIntervalSince(startTime)
+    }
 
-    /// Distinct muscles hit (union of all exercise targets).
+    /// Set of all muscle groups trained in this session.
     public var musclesTrained: Set<MuscleGroup> {
-        exerciseLogs.reduce(into: Set<MuscleGroup>()) { acc, log in
-            acc.formUnion(log.allTargetedMuscles)
+        exerciseLogs.reduce(into: Set<MuscleGroup>()) { result, log in
+            if let exercise = _exerciseResolver?(log.exerciseId) {
+                result.formUnion(exercise.allTargetedMuscles)
+            }
         }
     }
 
-    // MARK: – Init & Validation
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
-        date: Date = .init(),
+        id: UUID = UUID(),
+        date: Date = Date(),
         exerciseLogs: [ExerciseLog],
         startTime: Date,
-        endTime: Date,
-        notes: String? = nil
+        endTime: Date? = nil,
+        notes: String? = nil,
+        planId: UUID? = nil
     ) {
         precondition(!exerciseLogs.isEmpty, "A session requires at least one exercise log.")
-        precondition(endTime >= startTime, "endTime must not precede startTime.")
-
+        if let endTime = endTime {
+            precondition(endTime >= startTime, "endTime must not precede startTime.")
+        }
         self.id = id
         self.date = date
         self.exerciseLogs = exerciseLogs
         self.startTime = startTime
         self.endTime = endTime
         self.notes = notes
+        self.planId = planId
+    }
+
+    // MARK: Internal (for Analytics support)
+
+    /// Internal hook to resolve `Exercise` definitions from IDs when computing derived data.
+    internal static var _exerciseResolver: ((UUID) -> Exercise?)? = nil
+}
+
+extension WorkoutSession {
+    /// Convenience access to all `SetRecord`s in the session (flattened across exercises).
+    public var sets: [SetRecord] {
+        exerciseLogs.flatMap { $0.performedSets }
     }
 }

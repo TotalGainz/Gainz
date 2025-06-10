@@ -1,72 +1,43 @@
-//
-//  Exercise.swift
-//  Domain - Models
-//
-//  Immutable catalog descriptor for a resistance-training movement.
-//  Pure value type: no UIKit/SwiftUI, no HealthKit, no persistence details.
-//  Compiles on iOS, watchOS, macOS, visionOS, server-side Swift.
-//
-//  ───────────── Mission Invariants ─────────────
-//  • Zero HRV, recovery-score, or bar-velocity fields.
-//  • Must remain platform-agnostic; Foundation is the only import.
-//  • Codable + Hashable for painless persistence & diffing.
-//
-//  Created by Gainz Core Team on 27 May 2025.
-//
+/// Exercise.swift
 
 import Foundation
 
-// MARK: - Exercise
+/// Immutable catalog descriptor for a resistance training exercise.
+public struct Exercise: Identifiable, Hashable, Codable, Sendable {
+    // MARK: Core Fields
 
-/// Domain model representing a single exercise definition.
-///
-/// Examples:
-/// ```swift
-/// let bench = Exercise(
-///     name: "Barbell Bench Press",
-///     primaryMuscles: [.chest],
-///     secondaryMuscles: [.triceps, .frontDelts],
-///     mechanicalPattern: .horizontalPush,
-///     equipment: .barbell
-/// )
-/// ```
-///
-/// - Note: `id` is generated once and stored with the exercise catalog.
-///   DO **NOT** regenerate on every save, or historical logs will break.
-public struct Exercise: Identifiable, Hashable, Codable {
-
-    // Stable UUID for cross-feature referencing
+    /// Stable unique identifier for this exercise.
     public let id: UUID
 
-    /// Display name shown to the athlete (e.g., “Seated Cable Row”).
+    /// Display name of the exercise (e.g., "Barbell Bench Press").
     public let name: String
 
-    /// Muscle groups intended to receive the primary stimulus.
+    /// Primary muscle groups that this exercise is intended to train.
     public let primaryMuscles: Set<MuscleGroup>
 
-    /// Secondary or synergist muscle groups (optional).
+    /// Secondary or synergist muscle groups (if any).
     public let secondaryMuscles: Set<MuscleGroup>
 
-    /// Generalised biomechanical pattern (push, pull, squat, hinge, etc.).
+    /// General biomechanical movement pattern of the exercise.
     public let mechanicalPattern: MechanicalPattern
 
-    /// Broad equipment category (barbell, dumbbell, machine…).
+    /// Equipment category used for this exercise.
     public let equipment: Equipment
 
-    /// `true` if performed one side at a time (e.g., DB Row), else `false`.
+    /// Indicates if the exercise is performed unilaterally (one side at a time).
     public let isUnilateral: Bool
 
-    // MARK: Derived
+    // MARK: Derived Property
 
-    /// Union of primary + secondary muscle groups.
+    /// Union of `primaryMuscles` and `secondaryMuscles` for quick reference.
     public var allTargetedMuscles: Set<MuscleGroup> {
         primaryMuscles.union(secondaryMuscles)
     }
 
-    // MARK: Init
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
+        id: UUID = UUID(),
         name: String,
         primaryMuscles: Set<MuscleGroup>,
         secondaryMuscles: Set<MuscleGroup> = [],
@@ -74,10 +45,10 @@ public struct Exercise: Identifiable, Hashable, Codable {
         equipment: Equipment,
         isUnilateral: Bool = false
     ) {
-        precondition(!name.isEmpty, "Exercise name must not be empty")
-        precondition(!primaryMuscles.isEmpty, "At least one primary muscle is required")
+        precondition(!name.isEmpty, "Exercise name must not be empty.")
+        precondition(!primaryMuscles.isEmpty, "At least one primary muscle is required.")
         precondition(primaryMuscles.isDisjoint(with: secondaryMuscles),
-                     "Primary and secondary muscle sets must be disjoint")
+                     "Primary and secondary muscle groups must be disjoint.")
 
         self.id = id
         self.name = name
@@ -89,10 +60,8 @@ public struct Exercise: Identifiable, Hashable, Codable {
     }
 }
 
-// MARK: - Mechanical Pattern
-
-/// Categorical description of an exercise’s movement arc.
-public enum MechanicalPattern: String, Codable, CaseIterable {
+/// Categorical description of an exercise’s movement pattern.
+public enum MechanicalPattern: String, Codable, CaseIterable, Sendable {
     case horizontalPush
     case horizontalPull
     case verticalPush
@@ -105,10 +74,8 @@ public enum MechanicalPattern: String, Codable, CaseIterable {
     case isolation
 }
 
-// MARK: - Equipment
-
-/// Coarse equipment taxonomy—kept intentionally simple for portability.
-public enum Equipment: String, Codable, CaseIterable {
+/// Coarse equipment taxonomy for exercises (kept simple for portability).
+public enum Equipment: String, Codable, CaseIterable, Sendable {
     case barbell
     case dumbbell
     case kettlebell

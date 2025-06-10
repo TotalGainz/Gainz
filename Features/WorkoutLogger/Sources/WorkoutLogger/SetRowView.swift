@@ -1,18 +1,4 @@
-//
-//  SetRowView.swift
-//  Planner – Components
-//
-//  A compact, swipe-ready row that displays an editable “planned set”
-//  inside the Planner’s ExercisePlan editor.
-//
-//  ────────────────────────────────────────────────────────────
-//  • SwiftUI-only, no UIKit.
-//  • Uses DesignSystem tokens via CoreUI.
-//  • No HRV, recovery, or velocity badges.
-//  • Accessibility: Dynamic Type, VoiceOver labels, high-contrast.
-//
-//  Created for Gainz on 27 May 2025.
-//
+// SetRowView.swift
 
 import SwiftUI
 import Domain
@@ -20,41 +6,38 @@ import CoreUI   // Color tokens, typography helpers
 
 // MARK: - View Model
 
-/// Light view-model for two-way binding with the planner editor.
+/// A draft model representing an editable set in the planner's workout editor.
 public struct SetDraft: Identifiable, Hashable {
     public let id = UUID()
     public var reps: Int
-    public var weight: Double   // kg or lb (respect user settings)
+    public var weight: Double    // Weight (in user’s preferred unit, kg or lb)
     public var rpe: RPE?
 }
 
 // MARK: - SetRowView
 
+/// A single row in the planner's exercise editor list, allowing inline editing of a planned set.
 public struct SetRowView: View {
-
     // MARK: State
-
     @Binding public var draft: SetDraft
     @FocusState private var isWeightFocused: Bool
     @FocusState private var isRepFocused: Bool
 
     // MARK: Body
-
     public var body: some View {
         HStack(spacing: 12) {
-
             // Index badge
             Text("#\(indexDescription)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.primary.opacity(0.6))
+                .foregroundStyle(Color.onSurfaceSecondary)
                 .frame(width: 28, height: 28)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.secondary.opacity(0.1))
+                        .fill(Color.onSurfacePrimary.opacity(0.1))
                 )
                 .accessibilityHidden(true)
 
-            // Weight TextField
+            // Weight input field and unit
             HStack(spacing: 2) {
                 TextField("0", value: $draft.weight, format: .number)
                     .keyboardType(.decimalPad)
@@ -62,7 +45,6 @@ public struct SetRowView: View {
                     .focused($isWeightFocused)
                     .frame(minWidth: 44)
                     .accessibilityLabel("Weight")
-
                 Text(unitSymbol)
                     .font(.caption2)
                     .foregroundStyle(Color.secondary)
@@ -71,7 +53,7 @@ public struct SetRowView: View {
             Divider()
                 .frame(maxHeight: 18)
 
-            // Reps TextField
+            // Reps input field
             TextField("0", value: $draft.reps, format: .number)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
@@ -79,28 +61,27 @@ public struct SetRowView: View {
                 .frame(minWidth: 36)
                 .accessibilityLabel("Repetitions")
 
-            // Optional RPE picker
-            if let rpe = draft.rpe {
-                Text(rpe.description)
+            // Optional RPE badge (read-only)
+            if let rpeValue = draft.rpe {
+                Text(rpeValue.description)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.indigo)
+                    .foregroundStyle(Color.phoenixStart)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
-                        Capsule()
-                            .fill(Color.indigo.opacity(0.15))
+                        Capsule().fill(Color.phoenixStart.opacity(0.15))
                     )
-                    .accessibilityLabel("R P E \(rpe.rawValue)")
+                    .accessibilityLabel("R P E \(rpeValue)")
             }
 
             Spacer(minLength: 0)
 
-            // Swipe-to-delete handled by parent List
+            // (Swipe-to-delete is handled by the parent List row actions)
         }
         .padding(.vertical, 6)
-        .contentShape(Rectangle()) // increases tap target
+        .contentShape(Rectangle())  // increase tap target for focusing
         .onTapGesture {
-            // Focus first empty field or weight by default
+            // Tap focuses the first empty field or weight field by default
             if draft.weight == 0 {
                 isWeightFocused = true
             } else {
@@ -111,23 +92,25 @@ public struct SetRowView: View {
 
     // MARK: Helpers
 
+    /// 1-based index of this set row, if provided by parent environment, otherwise "0"
     private var indexDescription: String {
-        // Provided by parent List row index via environment or default to “?”
-        (Environment(\.rowIndex).wrappedValue ?? 0) + 1
+        let index = Environment(\.rowIndex).wrappedValue ?? 0
+        return index + 1 == 0 ? "?" : "\(index + 1)"
     }
 
+    /// Unit symbol for weight (e.g., "kg" or "lb") based on user preferences.
     private var unitSymbol: String {
-        // Respect global settings (metric / imperial)
-        UserPreferences.shared.weightUnit.symbol   // “kg” or “lb”
+        UserPreferences.shared.weightUnit.symbol    // returns "kg" or "lb"
     }
 }
 
 // MARK: - Previews
 
-#Preview("Set Row – KOM") {
-    @State var draft = SetDraft(reps: 8, weight: 100, rpe: .eight)
+#Preview("Planned Set Row") {
+    @State var draft = SetDraft(reps: 8, weight: 100.0, rpe: .eight)
     return SetRowView(draft: $draft)
         .padding()
         .previewLayout(.sizeThatFits)
         .background(Color.black)
+        .preferredColorScheme(.dark)
 }

@@ -1,11 +1,10 @@
-//
 //  CustomTabBarItemView.swift
 //  CoreUI – Components
 //
-//  Gainz-branded tab-bar item with gradient accent and subtle haptics.
-//  • Works with a `TabItem` model (icon SF Symbol + title).
-//  • Animates size/opacity on selection.
-//  • Dark-mode first; light-mode inverts legibility automatically.
+//  Gainz-branded tab bar item with gradient accent and subtle haptics.
+//  • Works with a `TabItem` model (SF Symbol icon + title).
+//  • Animates highlight on selection (with ease-in-out).
+//  • Dark-mode first; automatically adjusts for light mode legibility.
 //
 //  Created for Gainz on 27 May 2025.
 //
@@ -14,11 +13,12 @@ import SwiftUI
 
 // MARK: - Model
 
-/// Simple data model describing a tab-bar slot.
+/// Simple data model describing a tab bar item (icon and title).
 public struct TabItem: Identifiable, Hashable {
     public let id = UUID()
     public let systemIconName: String
     public let title: String
+
     public init(systemIconName: String, title: String) {
         self.systemIconName = systemIconName
         self.title = title
@@ -50,41 +50,53 @@ public struct CustomTabBarItemView: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .background(backgroundHighlight)
-        .contentShape(Rectangle())         // larger tap target
+        .contentShape(Rectangle())        // expands tappable area
         .animation(.easeInOut(duration: 0.18), value: isSelected)
-        .onChange(of: isSelected) { newValue in
-            if newValue { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+        .onChange(of: isSelected) { selected in
+            if selected {
+                // Subtle haptic feedback on selection
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
         }
         .accessibilityLabel(item.title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
-    // MARK: Private helpers
+    // MARK: - Private Helpers
+
+    /// Gradient for the icon: brand colors when selected, gray when not.
     private var iconGradient: LinearGradient {
-        isSelected
-        ? LinearGradient(
-            colors: [.brandIndigo, .brandViolet],
-            startPoint: .topLeading, endPoint: .bottomTrailing)
-        : LinearGradient(
-            colors: [Color.gray.opacity(0.6)],
-            startPoint: .top, endPoint: .bottom)
+        if isSelected {
+            return LinearGradient(
+                colors: [Color.brandIndigo, Color.brandViolet],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [Color.gray.opacity(0.6)],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
     }
 
+    /// Label color: white when selected, muted gray when not.
     private var labelColor: Color {
         isSelected ? .white : .gray.opacity(0.7)
     }
 
+    /// Background highlight for selected state (rounded rectangle with gradient stroke).
     private var backgroundHighlight: some View {
         Group {
             if isSelected {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.white.opacity(0.04))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(
-                                    colors: [.brandIndigo, .brandViolet],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing),
+                                    colors: [Color.brandIndigo, Color.brandViolet],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                ),
                                 lineWidth: 1
                             )
                     )

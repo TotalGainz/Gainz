@@ -1,4 +1,3 @@
-//
 //  ProfileCoordinator.swift
 //  Gainz – Profile Feature
 //
@@ -16,14 +15,19 @@ import Combine
 import Domain            // UserProfile model types
 import CoreUI            // Brand modifiers & palette
 import FeatureInterfaces // exposes ProfileFeatureInterface
+import ServicePersistence    // user profile & workout data storage
+import ServiceMetrics        // body metrics calculations
+import ServiceExport         // data export logic
 
 // MARK: – Route Enumeration
 
 /// Declarative map of destinations reachable from Profile.
 public enum ProfileRoute: Hashable {
-    case root
-    case editProfile
-    case settings
+    case root         // main profile screen
+    case editProfile  // edit profile details
+    case settings     // app settings
+    case history      // workout history list
+    case dataExport   // data export
 }
 
 // MARK: – Coordinator
@@ -32,20 +36,23 @@ public enum ProfileRoute: Hashable {
 public final class ProfileCoordinator: ObservableObject {
 
     // MARK: Public Navigation Path
-    @Published public var path: [ProfileRoute] = []
+    @Published public var path: [ProfileRoute] = []  // navigation state for Profile
 
     // MARK: Dependencies
-    private let profileRepo: UserProfileRepositoryProtocol
-    private let metricsUseCase: CalculateMetricsUseCaseProtocol
-    private let exportUseCase: ExportDataUseCaseProtocol
+    private let profileRepo: UserProfileRepositoryProtocol    // user profile repository
+    private let metricsUseCase: CalculateMetricsUseCaseProtocol  // calculates BMI, FFMI, etc.
+    private let exportUseCase: ExportDataUseCaseProtocol      // handles data export
+    private let workoutRepo: WorkoutSessionRepositoryProtocol // workout sessions repository
 
     // MARK: – Init
     public init(profileRepo: UserProfileRepositoryProtocol,
                 metricsUseCase: CalculateMetricsUseCaseProtocol,
-                exportUseCase: ExportDataUseCaseProtocol) {
-        self.profileRepo  = profileRepo
+                exportUseCase: ExportDataUseCaseProtocol,
+                workoutRepo: WorkoutSessionRepositoryProtocol) {
+        self.profileRepo   = profileRepo
         self.metricsUseCase = metricsUseCase
         self.exportUseCase  = exportUseCase
+        self.workoutRepo    = workoutRepo
     }
 }
 
@@ -60,7 +67,11 @@ extension ProfileCoordinator: ProfileFeatureInterface {
 
     /// Deep-link router (e.g., universal-link or widget).
     public func handleDeepLink(_ route: ProfileRoute) {
-        if path.isEmpty { path = [route] } else { path.append(route) }
+        if path.isEmpty {
+            path = [route]
+        } else {
+            path.append(route)
+        }
     }
 }
 
@@ -92,10 +103,8 @@ extension ProfileCoordinator {
                              metricsUseCase: metricsUseCase,
                              exportUseCase: exportUseCase,
                              hasSeparateSettingsTab: false)
-        ) { route in
-            // Closure emitted from ProfileView for child navigation.
-            path.append(route)
-        }
+        )
+        // ProfileView uses NavigationLinks for child routes
     }
 
     /// Switchboard for subsequent destinations.
@@ -106,10 +115,16 @@ extension ProfileCoordinator {
             makeRoot()
 
         case .editProfile:
-            EditProfileView(viewModel: .init(repository: profileRepo))
+            EditProfileView(viewModel: .init(repository: profileRepo))  // Edit Profile screen (external feature)
 
         case .settings:
-            SettingsView(viewModel: .init())
+            SettingsView(viewModel: .init())  // Settings screen (external feature)
+
+        case .history:
+            HistoryListView(viewModel: .init(repo: workoutRepo))  // workout history screen
+
+        case .dataExport:
+            DataExportView(useCase: exportUseCase)  // data export screen
         }
     }
 }
@@ -124,7 +139,8 @@ struct ProfileCoordinator_Previews: PreviewProvider {
         ProfileCoordinator(
             profileRepo: PreviewUserProfileRepository(),
             metricsUseCase: PreviewMetricsUseCase(),
-            exportUseCase: PreviewExportUseCase()
+            exportUseCase: PreviewExportUseCase(),
+            workoutRepo: PreviewWorkoutSessionRepository()
         ).start()
             .preferredColorScheme(.dark)
     }

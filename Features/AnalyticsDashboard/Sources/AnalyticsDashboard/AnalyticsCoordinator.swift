@@ -1,71 +1,65 @@
-//
 //  AnalyticsCoordinator.swift
 //  Gainz – AnalyticsDashboard Feature
 //
-//  Created by AI-Assistant on 2025-06-03.
-//  Copyright © 2025 Echelon Commerce LLC.
+//  Coordinates navigation for the Analytics Dashboard feature, managing routes to sub-views (heatmap, scorecard, etc).
 //
 
 import SwiftUI
 import Combine
-import Domain            // shared models (WorkoutSession, Exercise, etc.)
-import CoreUI            // brand-wide design tokens & components
-import FeatureInterfaces // exposes `AnalyticsDashboardFeatureInterface`
+import Domain            // Domain models (WorkoutSession, Exercise, etc.)
+import CoreUI            // Shared UI styling and components
+import FeatureInterfaces // Provides AnalyticsDashboardFeatureInterface protocol
 
-// MARK: – Route Enum
+// MARK: - Navigation Routes
 
-/// All navigable destinations within the Analytics Dashboard stack.
+/// All destinations within the Analytics Dashboard flow.
 public enum AnalyticsRoute: Hashable {
-    case dashboard                            // main overview
-    case muscleHeatmap                        // stimulus distribution
-    case strengthScorecard                    // 1RM & PR analytics
-    case vitalStatDetail(VitalStatKind)       // RHR, Sleep, etc.
-    case leaderboard                          // body- & strength-based
+    case dashboard                            // Main overview
+    case muscleHeatmap                        // Muscle stimulus distribution screen
+    case strengthScorecard                    // Strength 1RM progress screen
+    case vitalStatDetail(VitalStatKind)       // Detail for a specific vital stat
+    case leaderboard                          // Friends leaderboard
 }
 
-/// Simple “stat kind” discriminator (HRV intentionally excluded)
+/// Types of vital stats for detail view (excluding HRV per requirements).
 public enum VitalStatKind: String, Hashable, Codable {
     case restingHeartRate, sleepDuration, weightTrend
 }
 
-// MARK: – Coordinator
+// MARK: - Coordinator
 
 @MainActor
 public final class AnalyticsCoordinator: ObservableObject {
-
-    // MARK: Dependencies
     private let analyticsUseCase: CalculateAnalyticsUseCase
     private let haptic = HapticManager.shared
 
-    // MARK: Navigation
     @Published public var path: [AnalyticsRoute] = []
 
-    // MARK: Init
     public init(analyticsUseCase: CalculateAnalyticsUseCase) {
         self.analyticsUseCase = analyticsUseCase
     }
 }
 
-// MARK: – Interface Conformance
-extension AnalyticsCoordinator: AnalyticsDashboardFeatureInterface {
+// MARK: - Feature Interface Conformance
 
-    /// Entry-point consumed by `AppCoordinator` or TabRouter.
+extension AnalyticsCoordinator: AnalyticsDashboardFeatureInterface {
     public func start() -> AnyView {
         AnyView(AnalyticsCoordinatorView(coordinator: self))
     }
 
-    /// Deep-link router (e.g. from push-notification or widget).
     public func handleDeepLink(_ route: AnalyticsRoute) {
-        if path.isEmpty { path = [route] }       // initial push
-        else { path.append(route) }              // drill-in
+        if path.isEmpty {
+            path = [route]    // set initial route
+        } else {
+            path.append(route)
+        }
     }
 }
 
-// MARK: – SwiftUI Bridge
+// MARK: - SwiftUI Bridge
 
-/// Thin wrapper hosting the NavigationStack bound to the coordinator.
+/// Hosts the NavigationStack bound to the coordinator's route path.
 private struct AnalyticsCoordinatorView: View {
-
     @StateObject var coordinator: AnalyticsCoordinator
 
     var body: some View {
@@ -76,53 +70,45 @@ private struct AnalyticsCoordinatorView: View {
                 }
         }
         .navigationViewStyle(.stack)
-        .onAppear { coordinator.haptic.fire(.soft) }
+        .onAppear {
+            coordinator.haptic.fire(.soft)
+        }
     }
 }
 
-// MARK: – Factory Helpers
+// MARK: - Navigation Factory Methods
 
 extension AnalyticsCoordinator {
-
-    /// Root dashboard (summary cards + segmented controls).
+    /// Constructs the root Analytics dashboard view with navigation callbacks.
     func makeDashboard() -> some View {
-        AnalyticsView(viewModel: .init(analyticsUseCase: analyticsUseCase)) { route in
-            // child view emits desired route via callback
-            path.append(route)
+        AnalyticsView(analyticsUseCase: analyticsUseCase) { selectedRoute in
+            // Child view emits a route when a tile is tapped.
+            path.append(selectedRoute)
         }
-        .brandStyled() // CoreUI ViewModifier for gradient header
+        .brandStyled()  // Apply global brand styling (e.g., gradient background).
     }
 
-    /// Centralised navigation switch.
+    /// Builds the appropriate destination view for a given route.
     @ViewBuilder
     func buildDestination(for route: AnalyticsRoute) -> some View {
         switch route {
         case .dashboard:
             makeDashboard()
-
         case .muscleHeatmap:
-            MuscleHeatmapView(viewModel: .init(analyticsUseCase: analyticsUseCase))
-
+            MuscleHeatmapView(analyticsUseCase: analyticsUseCase)
         case .strengthScorecard:
-            StrengthScorecardView(viewModel: .init(analyticsUseCase: analyticsUseCase))
-
+            StrengthScorecardView(analyticsUseCase: analyticsUseCase)
         case .vitalStatDetail(let kind):
-            VitalStatDetailView(kind: kind,
-                                viewModel: .init(analyticsUseCase: analyticsUseCase))
-
+            VitalStatDetailView(kind: kind, analyticsUseCase: analyticsUseCase)
         case .leaderboard:
-            LeaderboardView(viewModel: .init(analyticsUseCase: analyticsUseCase))
+            LeaderboardView(analyticsUseCase: analyticsUseCase)
         }
     }
 }
 
-// MARK: – Preview
+// MARK: - Preview
 
-#if DEBUG
-struct AnalyticsCoordinator_Previews: PreviewProvider {
-    static var previews: some View {
-        AnalyticsCoordinator(analyticsUseCase: .preview).start()
-            .preferredColorScheme(.dark)
-    }
+#Preview {
+    AnalyticsCoordinator(analyticsUseCase: .preview).start()
+        .preferredColorScheme(.dark)
 }
-#endif

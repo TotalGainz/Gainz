@@ -1,60 +1,36 @@
-//
-//  GenerateInitialPlanUseCase.swift
-//  Domain – Use-Cases
-//
-//  Constructs the athlete’s very first MesocyclePlan from zero.
-//  Platform-agnostic, synchronous, pure deterministic logic.
-//
-//  ────────────────────────────────────────────────────────────
-//  • No HRV, recovery-score, or velocity dependencies.
-//  • Injects repositories as protocols → 100 % unit-testable.
-//  • Stateless: all randomness is seeded so results are reproducible.
-//
-//  Created for Gainz on 27 May 2025.
-//
+/// GenerateInitialPlanUseCase.swift
 
 import Foundation
 
 // MARK: - Use-Case Protocol
 
-/// Generates the athlete’s initial 4-week hypertrophy mesocycle.
-public protocol GenerateInitialPlanUseCase {
-
-    /// Builds a MesocyclePlan based on the onboarding survey.
-    ///
-    /// - Parameter request: struct holding onboarding answers.
-    /// - Returns: A fully populated `MesocyclePlan`.
+/// Use case for generating a brand-new initial training plan for a user based on onboarding inputs.
+public protocol GenerateInitialPlanUseCase: Sendable {
+    /// Build an initial `MesocyclePlan` given the user's onboarding survey responses.
     func execute(_ request: GenerateInitialPlanRequest) throws -> MesocyclePlan
 }
 
 // MARK: - Request DTO
 
-/// Immutable value that captures the onboarding choices.
-public struct GenerateInitialPlanRequest: Hashable {
-
-    public enum ExperienceLevel: String, Codable {
+/// Immutable request containing a new user's training preferences and experience.
+public struct GenerateInitialPlanRequest: Hashable, Sendable {
+    public enum ExperienceLevel: String, Codable, CaseIterable, Sendable {
         case novice, intermediate, advanced
     }
-
-    /// Available training days per week (3–6 recommended).
+    /// Preferred training frequency (days per week).
     public let weeklyFrequency: Int
-
-    /// True → user has barbell & plates; false → DB / bodyweight only.
+    /// Whether the user has access to barbell equipment.
     public let ownsBarbell: Bool
-
-    /// Trainee’s self-reported experience.
+    /// Training experience level.
     public let experience: ExperienceLevel
-
-    /// Seed for deterministic exercise selection (testing).
+    /// Optional seed for randomization (for deterministic testing).
     public let randomSeed: UInt64?
 
-    public init(
-        weeklyFrequency: Int,
-        ownsBarbell: Bool,
-        experience: ExperienceLevel,
-        randomSeed: UInt64? = nil
-    ) {
-        precondition((2...7).contains(weeklyFrequency), "Frequency must be 2–7")
+    public init(weeklyFrequency: Int,
+                ownsBarbell: Bool,
+                experience: ExperienceLevel,
+                randomSeed: UInt64? = nil) {
+        precondition((2...7).contains(weeklyFrequency), "weeklyFrequency must be 2–7.")
         self.weeklyFrequency = weeklyFrequency
         self.ownsBarbell = ownsBarbell
         self.experience = experience
@@ -65,128 +41,169 @@ public struct GenerateInitialPlanRequest: Hashable {
 // MARK: - Default Implementation
 
 public final class GenerateInitialPlanUseCaseImpl: GenerateInitialPlanUseCase {
-
     // Dependencies
     private let exerciseRepo: ExerciseRepository
-    private let uuid: () -> UUID
+    private let uuidProvider: () -> UUID
     private let rng: RandomNumberGenerator
 
-    // MARK: Init
-
-    public init(
-        exerciseRepo: ExerciseRepository,
-        uuid: @escaping () -> UUID = UUID.init,
-        randomSeed: UInt64? = nil
-    ) {
+    public init(exerciseRepo: ExerciseRepository,
+                uuidProvider: @escaping () -> UUID = { UUID() },
+                randomSeed: UInt64? = nil) {
         self.exerciseRepo = exerciseRepo
         if let seed = randomSeed {
             self.rng = SeededGenerator(seed: seed)
         } else {
             self.rng = SystemRandomNumberGenerator()
         }
-        self.uuid = uuid
+        self.uuidProvider = uuidProvider
     }
 
-    // MARK: Execute
-
     public func execute(_ request: GenerateInitialPlanRequest) throws -> MesocyclePlan {
-
-        // 1. Pull eligible exercises from repo
-        let catalog = try exerciseRepo.fetchAll()
-
-        // 2. Decide split (simple heuristic)
-        let split = SplitPlanner.chooseSplit(
-            frequency: request.weeklyFrequency,
-            experience: request.experience
-        )
-
-        // 3. Draft one WorkoutPlan per split day
+        // 1. Get all available exercises
+        let catalog = try awaitResult(execute: exerciseRepo.fetchAll())
+        // 2. Determine appropriate split pattern
+        let splitFocuses = SplitPlanner.chooseSplit(frequency: request.weeklyFrequency,
+                                                   experience: request.experience)
+        // 3. Create one WorkoutPlan per day in the split
         var workouts: [WorkoutPlan] = []
-        for (index, focus) in split.enumerated() {
-            let exercises = ExerciseSelector.select(
-                focus: focus,
-                catalog: catalog,
-                ownsBarbell: request.ownsBarbell,
-                rng: rng
-            )
-            workouts.append(
-                WorkoutPlan(
-                    id: uuid(),
-                    dayIndex: index,
-                    focus: focus,
-                    exercises: exercises
-                )
-            )
+        for (dayIndex, focus) in splitFocuses.enumerated() {
+            let exercises = ExerciseSelector.select(focus: focus,
+                                                    catalog: catalog,
+                                                    ownsBarbell: request.ownsBarbell,
+                                                    rng: rng)
+            workouts.append(WorkoutPlan(
+                id: uuidProvider(),
+                name: focus.displayName,
+                week: 0,
+                dayOfWeek: dayIndex,
+                exercises: exercises
+            ))
         }
-
-        // 4. Assemble MesocyclePlan (4 weeks default)
+        // 4. Assemble a MesocyclePlan (default 4 weeks for initial plan)
         return MesocyclePlan(
-            id: uuid(),
+            objective: .hypertrophy,
             weeks: 4,
             workouts: workouts
         )
     }
-}
 
-// MARK: - Small Helpers
+    // MARK: - Helper: Wrap async call into sync (since protocol is not async)
 
-private enum SplitPlanner {
+    /// Utility to synchronously wait for an async operation (only used here to adapt to protocol signature).
+    private func awaitResult<T>(execute asyncFunc: @autoclosure () async throws -> T) throws -> T {
+        var result: Result<T, Error>!
+        let semaphore = DispatchSemaphore(value: 0)
+        Task {
+            do {
+                result = .success(try await asyncFunc())
+            } catch {
+                result = .failure(error)
+            }
+            semaphore.signal()
+        }
+        semaphore.wait()
+        return try result.get()
+    }
 
-    static func chooseSplit(
-        frequency: Int,
-        experience: GenerateInitialPlanRequest.ExperienceLevel
-    ) -> [MuscleFocus] {
-        switch (frequency, experience) {
-        case (2, _):
-            return [.fullBody, .fullBody]
-        case (3, _):
-            return [.push, .pull, .legs]
-        case (4, .novice):
-            return [.upper, .lower, .upper, .lower]
-        case (4, _):
-            return [.push, .pull, .legs, .accessory]
-        case (5...7, _):
-            return [.push, .pull, .legs, .upper, .lower]
-        default:
-            return [.fullBody, .fullBody]
+    // MARK: - Nested Helpers
+
+    /// Determines an appropriate split (exercise focus per training day) based on frequency and experience.
+    private enum SplitPlanner {
+        static func chooseSplit(frequency: Int,
+                                experience: GenerateInitialPlanRequest.ExperienceLevel) -> [MuscleFocus] {
+            switch (frequency, experience) {
+            case (2, _):
+                return [.fullBody, .fullBody]
+            case (3, _):
+                return [.push, .pull, .legs]
+            case (4, .novice):
+                return [.upper, .lower, .upper, .lower]
+            case (4, _):
+                return [.push, .pull, .legs, .accessory]
+            case (5...7, _):
+                // Default for high frequencies: 5-day rotating split (push/pull/legs/upper/lower)
+                return [.push, .pull, .legs, .upper, .lower]
+            default:
+                return [.fullBody, .fullBody]
+            }
+        }
+    }
+
+    /// Selects specific exercises for a given day's focus.
+    private enum ExerciseSelector {
+        static func select(focus: MuscleFocus,
+                           catalog: [Exercise],
+                           ownsBarbell: Bool,
+                           rng: RandomNumberGenerator) -> [ExercisePrescription] {
+            // Filter exercises matching the focus and equipment availability
+            let filtered = catalog.filter { exercise in
+                focus.matches(exercise: exercise) &&
+                (ownsBarbell || exercise.equipment != .barbell)
+            }
+            // Shuffle and take up to 5 exercises for variety
+            let chosen = filtered.shuffled(using: rng).prefix(5)
+            // Map to ExercisePrescription with default sets and rep range
+            return chosen.map {
+                ExercisePrescription(
+                    exerciseId: $0.id,
+                    sets: 3,
+                    repRange: RepRange(min: 8, max: 12),
+                    targetRIR: 1,
+                    percent1RM: nil
+                )
+            }
+        }
+    }
+
+    /// Deterministic RNG for testing.
+    private struct SeededGenerator: RandomNumberGenerator {
+        private var state: UInt64
+        init(seed: UInt64) { self.state = seed }
+        mutating func next() -> UInt64 {
+            state = state &* 6364136223846793005 &+ 1
+            return state
         }
     }
 }
 
-private enum ExerciseSelector {
+/// Represents broad categories for daily workout focus (for split planning).
+private enum MuscleFocus {
+    case fullBody, push, pull, legs, upper, lower, accessory
 
-    static func select(
-        focus: MuscleFocus,
-        catalog: [Exercise],
-        ownsBarbell: Bool,
-        rng: RandomNumberGenerator
-    ) -> [ExercisePlan] {
-
-        let filtered = catalog.filter { exercise in
-            focus.matches(exercise: exercise) &&
-            (ownsBarbell || exercise.equipment != .barbell)
-        }
-
-        let chosen = Array(filtered.shuffled(using: rng).prefix(5))
-
-        return chosen.map {
-            ExercisePlan(
-                exerciseId: $0.id,
-                sets: 3,
-                repRange: RepRange(min: 8, max: 12),
-                targetRPE: .eight
-            )
+    /// Determine if an exercise fits this focus category.
+    func matches(exercise: Exercise) -> Bool {
+        switch self {
+        case .fullBody:
+            return true
+        case .push:
+            // Push day: chest, shoulders, triceps
+            return exercise.primaryMuscles.contains(where: { [.chest, .frontDelts, .lateralDelts, .triceps].contains($0) })
+        case .pull:
+            // Pull day: back, rear delts, biceps
+            return exercise.primaryMuscles.contains(where: { [.upperBack, .lats, .rearDelts, .biceps].contains($0) })
+        case .legs:
+            // Leg day: quads, hamstrings, glutes, calves
+            return exercise.primaryMuscles.contains(where: { [.quads, .hamstrings, .glutes, .calves].contains($0) })
+        case .upper:
+            return exercise.primaryMuscles.contains(where: { $0.isUpperBody })
+        case .lower:
+            return exercise.primaryMuscles.contains(where: { !$0.isUpperBody })
+        case .accessory:
+            // Accessory: arms, calves, abs (smaller muscle groups)
+            return exercise.primaryMuscles.contains(where: { [.biceps, .triceps, .forearms, .calves, .abs].contains($0) })
         }
     }
-}
 
-// MARK: - Seeded RNG (for deterministic tests)
-
-private struct SeededGenerator: RandomNumberGenerator {
-    private var state: UInt64
-    init(seed: UInt64) { self.state = seed }
-    mutating func next() -> UInt64 {
-        state = state &* 6364136223846793005 &+ 1
-        return state
+    /// A display name for the focus (used as workout name).
+    var displayName: String {
+        switch self {
+        case .fullBody:  return "Full Body"
+        case .push:      return "Push"
+        case .pull:      return "Pull"
+        case .legs:      return "Legs"
+        case .upper:     return "Upper Body"
+        case .lower:     return "Lower Body"
+        case .accessory: return "Accessory"
+        }
     }
 }

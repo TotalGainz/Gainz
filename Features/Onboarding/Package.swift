@@ -1,70 +1,48 @@
-// swift-tools-version:5.10
+// swift-tools-version: 5.10
+
 import PackageDescription
 
 let package = Package(
     name: "Onboarding",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v17)
     ],
     products: [
         .library(
             name: "Onboarding",
+            type: .dynamic,
             targets: ["Onboarding"]
         )
     ],
     dependencies: [
-        // Internal modules
-        .package(path: "../DesignSystem"),
-        .package(path: "../Navigation"),
-        .package(path: "../CorePersistence"),
-        // External packages
+        // Point-Free Composable Architecture & Dependencies
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.7.0"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies.git", from: "1.2.0"),
         .package(url: "https://github.com/CombineCommunity/CombineExt.git", from: "1.5.0"),
-        .package(url: "https://github.com/realm/SwiftLint.git", from: "0.55.0"),
-        .package(url: "https://github.com/SwiftGen/SwiftGen.git", from: "6.6.0")
+        // Internal modules
+        .package(path: "../../Modules/CoreUI"),
+        .package(path: "../../Modules/FeatureInterfaces")
     ],
     targets: [
         .target(
             name: "Onboarding",
             dependencies: [
-                "DesignSystem",
-                "Navigation",
-                "CorePersistence",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
-                .product(name: "CombineExt", package: "CombineExt")
+                .product(name: "CombineExt", package: "CombineExt"),
+                "CoreUI",
+                "FeatureInterfaces"
             ],
-            path: "Sources/Onboarding",
-            resources: [
-                .process("Resources")
-            ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint"),
-                .plugin(name: "SwiftGenPlugin", package: "SwiftGen")
-            ],
+            path: "Sources",
             swiftSettings: [
-                .unsafeFlags(["-enable-bare-slash-regex"], .when(configuration: .release)),
-                .unsafeFlags(["-Xfrontend", "-strict-concurrency=complete"], .when(configuration: .release))
+                .enableUpcomingFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
             name: "OnboardingTests",
-            dependencies: [
-                "Onboarding",
-                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
-            ],
-            path: "Tests/OnboardingTests",
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
-        ),
-        .executableTarget(
-            name: "OnboardingDemo",
-            dependencies: [
-                "Onboarding"
-            ],
-            path: "Demo"
+            dependencies: ["Onboarding"],
+            path: "Tests"
         )
     ]
 )

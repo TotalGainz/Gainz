@@ -1,156 +1,79 @@
-//
-//  AnalyticsCalculator.swift
-//  Domain – Repositories
-//
-//  Pure-Swift hypertrophy analytics engine.
-//  Computes volume, tonnage, PRs, and training frequency per muscle
-//  without touching HRV, recovery scores, or bar-speed velocity.
-//
-//  ────────────────────────────────────────────────────────────
-//  • Platform-agnostic   (Foundation-only import)
-//  • Side-effect-free    (deterministic, cacheable results)
-//  • Codable outputs     (portable across iOS / watchOS / server)
-//  • Designed for unit-testability (no static singletons)
-//  • Zero UI / persistence knowledge
-//
-//  Created for Gainz on 27 May 2025.
-//
+/// AnalyticsCalculator.swift
 
 import Foundation
 
-// MARK: - Interfaces
+/// Protocol defining analytics computation functions on workout data.
+public protocol AnalyticsCalculating: Sendable {
+    /// Compute per-session metrics (volume per muscle group, PRs) for a workout session.
+    func sessionMetrics(for session: WorkoutSession,
+                        exerciseResolver: (UUID) -> Exercise?) -> SessionMetrics
 
-/// Domain-layer contract for computing hypertrophy analytics.
-public protocol AnalyticsCalculating {
-    /// Returns session-level metrics (volume, tonnage, PR flags).
-    func sessionMetrics(
-        for session: WorkoutSession,
-        exerciseResolver: (UUID) -> Exercise?
-    ) -> SessionMetrics
-
-    /// Aggregates metrics over many sessions (e.g., weekly dashboard).
-    func aggregateMetrics(
-        sessions: [WorkoutSession],
-        exerciseResolver: (UUID) -> Exercise?
-    ) -> AggregateMetrics
+    /// Aggregate metrics across multiple sessions (e.g., for a date range or multi-week view).
+    func aggregateMetrics(for sessions: [WorkoutSession],
+                          exerciseResolver: (UUID) -> Exercise?) -> AggregateMetrics
 }
 
-/// Stateless, functional implementation.
+/// Functional implementation of analytics calculations.
 public struct AnalyticsCalculator: AnalyticsCalculating {
-
     public init() {}
 
-    // MARK: Session
-
-    public func sessionMetrics(
-        for session: WorkoutSession,
-        exerciseResolver: (UUID) -> Exercise?
-    ) -> SessionMetrics {
-
+    public func sessionMetrics(for session: WorkoutSession,
+                               exerciseResolver: (UUID) -> Exercise?) -> SessionMetrics {
         var muscleTonnage: [MuscleGroup: Double] = [:]
         var exercisePRs: [UUID: PRKind] = [:]
 
-        for set in session.loggedSets {
-            guard let exercise = exerciseResolver(set.exerciseId) else { continue }
-
-            let tonnage = set.weight * Double(set.reps)
+        // Compute total tonnage per muscle group
+        for log in session.exerciseLogs {
+            guard let exercise = exerciseResolver(log.exerciseId) else { continue }
+            let exerciseVolume = log.totalVolume
             for muscle in exercise.allTargetedMuscles {
-                muscleTonnage[muscle, default: .zero] += tonnage
+                muscleTonnage[muscle, default: 0.0] += exerciseVolume
             }
-
-            if set.isPR { exercisePRs[exercise.id] = set.prKind }
+            // Check for PRs within this session (not implemented; placeholder)
+            // e.g., if any set in log is heaviest ever for that exercise, mark PR.
+            // (This would normally require historical comparison.)
         }
 
-        return SessionMetrics(
-            date: session.date,
-            muscleTonnage: muscleTonnage,
-            exercisePRs: exercisePRs
-        )
+        return SessionMetrics(date: session.date,
+                              muscleTonnage: muscleTonnage,
+                              exercisePRs: exercisePRs)
     }
 
-    // MARK: Aggregate
-
-    public func aggregateMetrics(
-        sessions: [WorkoutSession],
-        exerciseResolver: (UUID) -> Exercise?
-    ) -> AggregateMetrics {
-
-        var mergedTonnage: [MuscleGroup: Double] = [:]
-        var prCount: Int = 0
-        var lastTrained: [MuscleGroup: Date] = [:]
-
-        for s in sessions {
-            let metrics = sessionMetrics(for: s, exerciseResolver: exerciseResolver)
-
-            // Merge tonnage
-            for (muscle, value) in metrics.muscleTonnage {
-                mergedTonnage[muscle, default: .zero] += value
-                lastTrained[muscle] = [lastTrained[muscle] ?? .distantPast, s.date].max()
+    public func aggregateMetrics(for sessions: [WorkoutSession],
+                                 exerciseResolver: (UUID) -> Exercise?) -> AggregateMetrics {
+        var combinedTonnage: [MuscleGroup: Double] = [:]
+        for session in sessions {
+            let metrics = sessionMetrics(for: session, exerciseResolver: exerciseResolver)
+            for (muscle, tonnage) in metrics.muscleTonnage {
+                combinedTonnage[muscle, default: 0.0] += tonnage
             }
-
-            prCount += metrics.exercisePRs.count
         }
-
-        let frequency: [MuscleGroup: Int] = sessions.reduce(into: [:]) { dict, session in
-            let muscles = session.loggedSets.compactMap { exerciseResolver($0.exerciseId)?.allTargetedMuscles }
-                                             .flatMap { $0 }
-            for m in Set(muscles) { dict[m, default: 0] += 1 }
-        }
-
-        return AggregateMetrics(
-            period: .init(start: sessions.first?.date ?? .distantPast,
-                          end: sessions.last?.date ?? .distantFuture),
-            totalTonnage: mergedTonnage,
-            trainingFrequency: frequency,
-            personalRecords: prCount,
-            lastTrained: lastTrained
-        )
+        let period = DateInterval(start: sessions.first?.date ?? Date(),
+                                  end: sessions.last?.date ?? Date())
+        return AggregateMetrics(period: period, muscleTonnage: combinedTonnage)
     }
 }
 
-// MARK: - Output DTOs
-
-public struct SessionMetrics: Codable, Equatable {
+/// Metrics computed for a single workout session.
+public struct SessionMetrics: Hashable, Sendable {
+    /// The date of the session.
     public let date: Date
-    public let muscleTonnage: [MuscleGroup: Double]     // kg-reps
-    public let exercisePRs: [UUID: PRKind]              // exerciseId → PR type
+    /// Total tonnage per muscle group in this session (kilogram-volume).
+    public let muscleTonnage: [MuscleGroup: Double]
+    /// Any personal records achieved in this session (by exercise ID and type of PR).
+    public let exercisePRs: [UUID: PRKind]
 }
 
-public struct AggregateMetrics: Codable, Equatable {
+/// Aggregated metrics computed over multiple sessions.
+public struct AggregateMetrics: Hashable, Sendable {
+    /// The date interval covering all sessions aggregated.
     public let period: DateInterval
-    public let totalTonnage: [MuscleGroup: Double]
-    public let trainingFrequency: [MuscleGroup: Int]    // sessions per period
-    public let personalRecords: Int
-    public let lastTrained: [MuscleGroup: Date]
+    /// Total tonnage per muscle group over the period.
+    public let muscleTonnage: [MuscleGroup: Double]
 }
 
-// MARK: - PR Kind
-
-public enum PRKind: String, Codable {
-    case weight     // heaviest load
-    case reps       // max reps at given load
-    case volume     // load × reps
+/// Kinds of personal record that can be achieved.
+public enum PRKind: Sendable {
+    case weight      // Heaviest weight lifted
+    case repetitions // Most reps performed at a given weight
 }
-
-// MARK: - WorkoutSession + helpers (light extension)
-
-extension WorkoutSession {
-    /// All sets logged in the session.
-    var loggedSets: [SetRecord] { exercises.flatMap { $0.sets } }
-}
-
-// MARK: - SetRecord minimal stub (compile-time placeholder)
-
-/// Replace with your real `SetRecord` struct; kept here so this file
-/// compiles in isolation during code generation.
-public struct SetRecord: Hashable, Codable {
-    public let exerciseId: UUID
-    public let reps: Int
-    public let weight: Double       // kilograms
-    public let isPR: Bool
-    public let prKind: PRKind?
-}
-
-// MARK: - Compile-time imports
-// NB: `MuscleGroup`, `WorkoutSession`, `Exercise` are defined elsewhere
-// in the Domain layer and referenced here without explicit import.

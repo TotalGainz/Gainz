@@ -1,152 +1,113 @@
-//
-//  ExercisePlan.swift
-//  Domain – Models
-//
-//  Declarative prescription for a single exercise inside a MesocyclePlan.
-//  Defines the *target stimuli* the athlete should achieve before logging.
-//
-//  ──────────────────── Design Invariants ────────────────────
-//  • Pure value-type (Codable + Hashable); no UIKit / SwiftUI imports.
-//  • Lives in Domain, so it cannot reference CoreData or HealthKit.
-//  • No HRV, recovery-score, or bar-velocity fields.
-//  • Accepts flexible progression models (linear %, double, RIR-driven).
-//
-//  Created for Gainz by the Core Domain team on 27 May 2025.
-//
+/// ExercisePlan.swift
 
 import Foundation
 
-/// **ExercisePlan** describes how an exercise should be performed across one
-/// or more sessions in the upcoming mesocycle. The WorkoutLogger reconciles
-/// these targets against real-world `ExerciseLog` data to determine progress.
+/// Describes a progression plan for a single exercise across a mesocycle.
 ///
-/// Example — double-progression dumbbell row:
-/// ```swift
-/// let rowPlan = ExercisePlan(
-///     exerciseId: row.id,
-///     progression: .doubleProgression(
-///         repRange: 8...12,
-///         loadIncrement: .kilograms(2.5)
-///     ),
-///     targetSets: 4,
-///     targetRIR: 1
-/// )
-/// ```
-public struct ExercisePlan: Identifiable, Hashable, Codable {
-
+/// An `ExercisePlan` defines the target sets and progression strategy for one exercise
+/// in a training plan. This is used to generate week-by-week prescriptions.
+public struct ExercisePlan: Identifiable, Hashable, Codable, Sendable {
     // MARK: Core Fields
 
-    /// Stable identifier for the plan element.
+    /// Unique identifier for this exercise plan element.
     public let id: UUID
-
-    /// FK to `Exercise` definition in catalog.
+    /// Reference to the `Exercise` being planned.
     public let exerciseId: UUID
-
-    /// Desired number of working sets per session.
-    public let targetSets: Int
-
-    /// Target proximity-to-failure (RIR or RPE proxy).
-    public let targetRIR: Int
-
-    /// Algorithm that dictates load / rep progression week-to-week.
+    /// Target number of working sets per session for this exercise.
+    public let sets: Int
+    /// Target effort indicator (in RIR or RPE terms) to aim for.
+    public let targetRIR: Int?
+    /// Optional target RPE (if using RPE instead of RIR).
+    public let targetRPE: RPE?
+    /// Desired repetition range for each set.
+    public let repRange: RepRange
+    /// Progression model dictating how load or reps increase over weeks.
     public let progression: ProgressionStrategy
-
-    /// Optional notes to surface in the UI (form cues, tempo, etc.).
+    /// Optional coaching or technique notes for this exercise.
     public let coachingNotes: String?
 
-    // MARK: Initialiser
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
+        id: UUID = UUID(),
         exerciseId: UUID,
-        targetSets: Int,
-        targetRIR: Int,
+        sets: Int,
+        targetRIR: Int? = nil,
+        targetRPE: RPE? = nil,
+        repRange: RepRange,
         progression: ProgressionStrategy,
         coachingNotes: String? = nil
     ) {
-        precondition(targetSets > 0, "targetSets must be > 0")
-        precondition((0...4).contains(targetRIR), "targetRIR must be 0–4")
+        precondition(sets > 0, "Target sets must be > 0.")
+        if let rir = targetRIR {
+            precondition((0...4).contains(rir), "targetRIR must be between 0 and 4.")
+        }
+        if let rpe = targetRPE {
+            precondition((1...10).contains(rpe.rawValue), "targetRPE must be between 1 and 10.")
+        }
         self.id = id
         self.exerciseId = exerciseId
-        self.targetSets = targetSets
+        self.sets = sets
         self.targetRIR = targetRIR
+        self.targetRPE = targetRPE
+        self.repRange = repRange
         self.progression = progression
         self.coachingNotes = coachingNotes
     }
 }
 
-// MARK: - Progression Strategy
+/// Defines a range of repetitions (e.g., 8–12 reps).
+public struct RepRange: Hashable, Codable, Sendable {
+    public let min: Int
+    public let max: Int
 
-/// Encapsulates the overload model for the exercise.
-/// The Planner chooses one; the WorkoutLogger references it to compute
-/// the next session’s load & rep targets.
-public enum ProgressionStrategy: Codable, Hashable {
-
-    /// Linear percentage-based loading (common for compounds).
-    /// e.g. Start at 70 % 1RM week 1 → +2.5 % per week.
-    case linearPercentage(startPercent1RM: Double, weeklyIncrement: Double)
-
-    /// Double progression: fill the rep range at fixed load, then bump load.
-    case doubleProgression(repRange: ClosedRange<Int>, loadIncrement: LoadIncrement)
-
-    /// Rep-only progression: add reps within a predefined range week-to-week.
-    case repProgression(repRange: ClosedRange<Int>)
-
-    /// RIR-based auto-regulation: athlete selects load to meet target RIR each week.
-    case rirAutoregulated
-
-    // Codable boilerplate for associated enums
-    private enum CodingKeys: String, CodingKey { case kind, data }
-
-    private enum Kind: String, Codable {
-        case linearPercentage
-        case doubleProgression
-        case repProgression
-        case rirAutoregulated
+    public init(min: Int, max: Int) {
+        precondition(min > 0 && max >= min, "RepRange must have min > 0 and max >= min.")
+        self.min = min
+        self.max = max
     }
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case let .linearPercentage(start, inc):
-            try container.encode(Kind.linearPercentage, forKey: .kind)
-            try container.encode([start, inc], forKey: .data)
-        case let .doubleProgression(range, inc):
-            try container.encode(Kind.doubleProgression, forKey: .kind)
-            try container.encode([range.lowerBound, range.upperBound, inc], forKey: .data)
-        case let .repProgression(range):
-            try container.encode(Kind.repProgression, forKey: .kind)
-            try container.encode([range.lowerBound, range.upperBound], forKey: .data)
-        case .rirAutoregulated:
-            try container.encode(Kind.rirAutoregulated, forKey: .kind)
-        }
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let kind = try container.decode(Kind.self, forKey: .kind)
-        switch kind {
-        case .linearPercentage:
-            let values = try container.decode([Double].self, forKey: .data)
-            self = .linearPercentage(startPercent1RM: values[0], weeklyIncrement: values[1])
-        case .doubleProgression:
-            let values = try container.decode([Double].self, forKey: .data)
-            let range = Int(values[0])...Int(values[1])
-            self = .doubleProgression(repRange: range, loadIncrement: .kilograms(values[2]))
-        case .repProgression:
-            let values = try container.decode([Double].self, forKey: .data)
-            let range = Int(values[0])...Int(values[1])
-            self = .repProgression(repRange: range)
-        case .rirAutoregulated:
-            self = .rirAutoregulated
-        }
+    /// Returns a `ClosedRange<Int>` representing this rep range.
+    public var range: ClosedRange<Int> {
+        return min...max
     }
 }
 
-// MARK: - Load Increment Helper
+/// Protocol for a progression strategy that dictates how an exercise progresses week-to-week.
+public protocol ProgressionStrategy: Sendable {
+    /// Optionally, progression strategies could define methods to compute next week targets.
+    /// For simplicity, this protocol serves as a marker for Codable strategies.
+}
 
-/// Describes how much to increase load when a progression step is triggered.
-public enum LoadIncrement: Codable, Hashable {
-    case kilograms(Double)
-    case pounds(Double)
+/// A progression strategy where both reps and load increase across the mesocycle (double progression).
+public struct DoubleProgression: ProgressionStrategy, Codable, Sendable {
+    /// Target rep range to cycle within (e.g., 8–12).
+    public let repRange: RepRange
+    /// Increment to add to the load (weight) once top of rep range is exceeded.
+    public let loadIncrement: WeightIncrement
+
+    public init(repRange: RepRange, loadIncrement: WeightIncrement) {
+        self.repRange = repRange
+        self.loadIncrement = loadIncrement
+    }
+}
+
+/// Represents a weight increment in a specified unit.
+public struct WeightIncrement: Hashable, Codable, Sendable {
+    public enum Unit: String, Codable, Sendable { case kilograms, pounds }
+    public let value: Double
+    public let unit: Unit
+
+    public init(value: Double, unit: Unit) {
+        precondition(value >= 0, "WeightIncrement value must be non-negative.")
+        self.value = value
+        self.unit = unit
+    }
+
+    public static func kilograms(_ value: Double) -> WeightIncrement {
+        WeightIncrement(value: value, unit: .kilograms)
+    }
+    public static func pounds(_ value: Double) -> WeightIncrement {
+        WeightIncrement(value: value, unit: .pounds)
+    }
 }

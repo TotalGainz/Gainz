@@ -1,103 +1,89 @@
-//  SettingsViewModel.swift
-//  Gainz – Settings Feature
+// SettingsViewModel.swift
+// Gainz – Settings Feature Module
 //
-//  Created by AI Auto-Generated on 2025-06-04.
-//
-//  This @MainActor ObservableObject exposes three user-preferences and
-//  propagates changes to the shared CoreUI managers.  Using Combine’s
-//  automatic publisher synthesis via @Published keeps SettingsView in-sync
-//  without extra glue code.
-//
-//  NOTE: Intentionally no HRV or Velocity-Tracking logic per project scope.
+// @MainActor ObservableObject that exposes user preference toggles (appearance, haptics, notifications).
+// Propagates changes to shared managers (AppearanceManaging, FeedbackManaging) and persists values via UserDefaults.
+// Uses dependency injection for easy testing, and keeps UI updated through @Published properties.
 
 import SwiftUI
 import Combine
 import CoreUI
+import CorePersistence
 
+// Protocol defining navigation actions from Settings (for decoupling Coordinator from ViewModel)
+protocol SettingsCoordinatorProtocol: AnyObject {
+    func openNotificationSettings()
+}
+
+// MARK: - Settings ViewModel
 @MainActor
 public final class SettingsViewModel: ObservableObject {
-
     // MARK: - Published User Preferences
-
     @Published public var darkModeEnabled: Bool {
-        didSet { appearanceManager.setDarkMode(darkModeEnabled) }
+        didSet {
+            // Apply appearance change immediately through AppearanceManager
+            appearanceManager.setDarkMode(darkModeEnabled)
+            // Persist the new value
+            userDefaults.set(darkModeEnabled, forKey: SettingsKey.darkModeEnabled.rawValue)
+        }
     }
-
+    
     @Published public var hapticsEnabled: Bool {
-        didSet { feedbackManager.hapticsEnabled = hapticsEnabled }
+        didSet {
+            // Enable/disable haptic feedback globally via FeedbackManager
+            feedbackManager.hapticsEnabled = hapticsEnabled
+            // Persist the new value
+            userDefaults.set(hapticsEnabled, forKey: SettingsKey.hapticsEnabled.rawValue)
+        }
     }
-
+    
     @Published public var notificationsEnabled: Bool {
-        didSet { feedbackManager.notificationsEnabled = notificationsEnabled }
+        didSet {
+            // Update global notifications setting via FeedbackManager (scheduling or unscheduling notifications)
+            feedbackManager.notificationsEnabled = notificationsEnabled
+            // Persist the new value
+            userDefaults.set(notificationsEnabled, forKey: SettingsKey.notificationsEnabled.rawValue)
+        }
     }
-
-    // MARK: - Private
-
+    
+    // MARK: - Dependencies
     private let appearanceManager: AppearanceManaging
     private let feedbackManager: FeedbackManaging
-    private var cancellables = Set<AnyCancellable>()
-
-    // MARK: - Init
-
+    private let userDefaults: UserDefaults
+    
+    // Weak reference to the coordinator to trigger navigation (internal, not exposed publicly)
+    internal weak var coordinator: SettingsCoordinatorProtocol?
+    
+    // MARK: - Initialization
     public init(
         appearanceManager: AppearanceManaging = .shared,
         feedbackManager: FeedbackManaging = .shared,
         storage: UserDefaults = .standard
     ) {
-        self.appearanceManager   = appearanceManager
-        self.feedbackManager     = feedbackManager
-
-        // Bootstrap from persisted values via @AppStorage wrapper manually
-        _darkModeEnabled        = Published(initialValue: storage.bool(forKey: SettingsKey.darkModeEnabled.rawValue))
-        _hapticsEnabled         = Published(initialValue: storage.object(forKey: SettingsKey.hapticsEnabled.rawValue) as? Bool ?? true)
-        _notificationsEnabled   = Published(initialValue: storage.object(forKey: SettingsKey.notificationsEnabled.rawValue) as? Bool ?? true)
-
-        bindAppStorage(using: storage)
+        self.appearanceManager = appearanceManager
+        self.feedbackManager = feedbackManager
+        self.userDefaults = storage
+        
+        // Initialize published properties from stored values (with sensible defaults if unset)
+        let storedDarkMode = storage.bool(forKey: SettingsKey.darkModeEnabled.rawValue)
+        let storedHaptics = (storage.object(forKey: SettingsKey.hapticsEnabled.rawValue) as? Bool) ?? true
+        let storedNotifications = (storage.object(forKey: SettingsKey.notificationsEnabled.rawValue) as? Bool) ?? true
+        darkModeEnabled = storedDarkMode
+        hapticsEnabled = storedHaptics
+        notificationsEnabled = storedNotifications
+        
+        // Note: Property observers (didSet) are not called during init, so managers will not be signaled here.
+        // The AppearanceManager may be configured elsewhere (e.g., app launch) to apply the saved theme.
     }
-
-    // MARK: - Persistence Bridge
-
-    private func bindAppStorage(using storage: UserDefaults) {
-        $darkModeEnabled
-            .dropFirst() // ignore seed value
-            .sink { storage.set($0, forKey: SettingsKey.darkModeEnabled.rawValue) }
-            .store(in: &cancellables)
-
-        $hapticsEnabled
-            .dropFirst()
-            .sink { storage.set($0, forKey: SettingsKey.hapticsEnabled.rawValue) }
-            .store(in: &cancellables)
-
-        $notificationsEnabled
-            .dropFirst()
-            .sink { storage.set($0, forKey: SettingsKey.notificationsEnabled.rawValue) }
-            .store(in: &cancellables)
+    
+    // MARK: - Navigation Intents
+    /// Call to open the detailed Notification Settings screen
+    public func openNotificationSettings() {
+        coordinator?.openNotificationSettings()
     }
-
-    // MARK: - Convenience Toggle APIs (optional)
-
-    public func toggleDarkMode()       { darkModeEnabled.toggle() }
-    public func toggleHaptics()        { hapticsEnabled.toggle() }
-    public func toggleNotifications()  { notificationsEnabled.toggle() }
-}
-
-// MARK: - SettingsKey
-
-fileprivate enum SettingsKey: String {
-    case darkModeEnabled
-    case hapticsEnabled
-    case notificationsEnabled
-}
-
-// MARK: - Protocol Shims (for dependency-injection / unit-testing)
-
-public protocol AppearanceManaging {
-    static var shared: AppearanceManaging { get }
-    func setDarkMode(_ enabled: Bool)
-}
-
-public protocol FeedbackManaging {
-    static var shared: FeedbackManaging { get }
-    var hapticsEnabled: Bool { get set }
-    var notificationsEnabled: Bool { get set }
+    
+    // MARK: - Preference Keys (namespace for UserDefaults keys)
+    private enum SettingsKey: String {
+        case darkModeEnabled, hapticsEnabled, notificationsEnabled
+    }
 }

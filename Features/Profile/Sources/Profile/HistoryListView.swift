@@ -1,4 +1,3 @@
-//
 //  HistoryListView.swift
 //  Gainz – Profile Feature
 //
@@ -14,7 +13,9 @@
 //    pull-to-refresh semantics.  [oai_citation:1‡stackoverflow.com](https://stackoverflow.com/questions/74247686/bug-in-swiftui-ios-15-list-refresh-action-is-executed-on-an-old-instance-of-vi?utm_source=chatgpt.com) [oai_citation:2‡gist.github.com](https://gist.github.com/inTheAM/a17a96a13ab8d30095240acea39c1115?utm_source=chatgpt.com)
 //
 //  • Provides swipe-to-delete actions with `.onDelete` and
-//    `.swipeActions`, mirroring Apple Mail UX.  [oai_citation:3‡medium.com](https://medium.com/%40thanhtra.sqcb/swiftui-for-beginner-8-list-deletion-swipe-actions-context-menus-and-activity-controller-8f9a5de31000?utm_source=chatgpt.com) [oai_citation:4‡kodeco.com](https://www.kodeco.com/books/swiftui-cookbook/v1.0/chapters/4-implementing-swipe-to-delete-in-swiftui?utm_source=chatgpt.com)
+//    `.swipeActions`, mirroring Apple Mail UX.
+//    [oai_citation:3‡medium.com](https://medium.com/%40thanhtra.sqcb/swiftui-for-beginner-8-list-deletion-swipe-actions-context-menus-and-activity-controller-8f9a5de31000?utm_source=chatgpt.com)
+//    [oai_citation:4‡kodeco.com](https://www.kodeco.com/books/swiftui-cookbook/v1.0/chapters/4-implementing-swipe-to-delete-in-swiftui?utm_source=chatgpt.com)
 //
 //  • Leverages `@Published` in the view-model for reactive updates
 //    and Combine integration.  [oai_citation:5‡developer.apple.com](https://developer.apple.com/documentation/combine/published?utm_source=chatgpt.com) [oai_citation:6‡paigeshin1991.medium.com](https://paigeshin1991.medium.com/swift-combine-about-published-wrapper-things-you-probably-didnt-know-8711706d890f?utm_source=chatgpt.com)
@@ -22,7 +23,8 @@
 //  • Sorts sessions descending by date before diffing for sections.  [oai_citation:7‡stackoverflow.com](https://stackoverflow.com/questions/42479412/sort-by-date-swift-3?utm_source=chatgpt.com)
 //
 //  • Chooses `List` over `LazyVStack` for out-of-box cell reuse,
-//    because performance is adequate for historical logs.  [oai_citation:8‡fatbobman.com](https://fatbobman.com/en/posts/list-or-lazyvstack/?utm_source=chatgpt.com)
+//    because performance is adequate for historical logs.
+//    [oai_citation:8‡fatbobman.com](https://fatbobman.com/en/posts/list-or-lazyvstack/?utm_source=chatgpt.com)
 //
 //  • Demonstrates date-based Section headers pattern.  [oai_citation:9‡stackoverflow.com](https://stackoverflow.com/questions/73733910/swiftui-sorting-a-structured-array-and-show-date-item-into-a-section-header?utm_source=chatgpt.com)
 //
@@ -74,7 +76,7 @@ public struct HistoryListView: View {
         .navigationTitle("History")
         .refreshable { await viewModel.refresh() }
         .navigationDestination(for: WorkoutSession.ID.self) { id in
-            WorkoutDetailView(sessionID: id)
+            WorkoutDetailView(sessionID: id)  // navigates to workout detail screen (external feature)
         }
         .task { await viewModel.load() }
     }
@@ -117,6 +119,7 @@ public final class HistoryListViewModel: ObservableObject {
         do {
             var sessions = try await repo.fetchAllSessions()
             sessions.sort { $0.date > $1.date }              // newest first
+            // Group workouts by start-of-week into sections
             sectionedSessions = Dictionary(
                 grouping: sessions,
                 by: { Calendar.current.startOfWeek(for: $0.date) }
@@ -131,7 +134,7 @@ public final class HistoryListViewModel: ObservableObject {
     func delete(in weekStart: Date, offsets: IndexSet) {
         guard var list = sectionedSessions[weekStart] else { return }
         offsets.map { list[$0] }.forEach { session in
-            try? repo.delete(sessionID: session.id)
+            try? repo.delete(sessionID: session.id)  // deletion error ignored
         }
         list.remove(atOffsets: offsets)
         sectionedSessions[weekStart] = list
@@ -139,7 +142,7 @@ public final class HistoryListViewModel: ObservableObject {
 
     func deleteAll(in weekStart: Date) {
         guard let list = sectionedSessions[weekStart] else { return }
-        list.forEach { try? repo.delete(sessionID: $0.id) }
+        list.forEach { try? repo.delete(sessionID: $0.id) }  // errors ignored
         sectionedSessions[weekStart] = []
     }
 }

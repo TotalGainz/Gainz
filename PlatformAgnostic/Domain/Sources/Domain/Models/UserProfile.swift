@@ -1,72 +1,47 @@
-//
-//  UserProfile.swift
-//  Domain – Models
-//
-//  Immutable profile descriptor for the athlete who owns the local Gainz account.
-//  Pure value type; no UIKit, HealthKit, or persistence concerns.
-//
-//  ─────────────────── Design Invariants ───────────────────
-//  • Codable & Hashable for CoreData / JSON sync.
-//  • No HRV, recovery metrics, or velocity data.
-//  • Uses SI units (centimetres, kilograms) for portability.
-//  • Enums kept lightweight to avoid over-civilisation.
-//
-//  Created for Gainz by the Core Domain team on 27 May 2025.
-//
+/// UserProfile.swift
 
 import Foundation
 
-// MARK: - UserProfile
-
-/// Athlete identity and baseline physical data.
-///
-/// The struct is intentionally minimal; any sensitive or
-/// change-frequent attributes (email, auth tokens) live in
-/// the `AuthUser` entity of the Persistence layer.
-public struct UserProfile: Identifiable, Hashable, Codable {
-
+/// Immutable profile of the athlete using the app.
+public struct UserProfile: Identifiable, Hashable, Codable, Sendable {
     // MARK: Core Fields
 
-    /// Stable user UUID (generated on first app launch).
+    /// Unique user identifier (generated on first app use).
     public let id: UUID
-
-    /// Preferred display name shown throughout the app.
+    /// The athlete's display name or nickname.
     public let givenName: String
-
-    /// ISO-8601 birth date (used to derive age).
+    /// Date of birth (used to compute age).
     public let dateOfBirth: Date
-
-    /// Biological sex for TDEE / strength-norm analytics.
+    /// Biological sex (may influence calculations like calorie needs or strength standards).
     public let biologicalSex: BiologicalSex
-
-    /// Standing height in centimetres.
+    /// Height in centimeters.
     public let heightCm: Double
-
-    /// Current body mass in kilograms.
+    /// Current body weight in kilograms.
     public let bodyWeightKg: Double
-
-    /// Training experience tier (novice → advanced).
+    /// Self-reported training experience level.
     public let experienceLevel: ExperienceLevel
-
-    /// Primary goal guiding mesocycle generation.
+    /// Primary training goal for the athlete.
     public let primaryGoal: TrainingGoal
 
     // MARK: Derived Helpers
 
-    /// Age in years (integer truncation).
+    /// Age in years (based on `dateOfBirth` and current date).
     public var ageInYears: Int {
-        Calendar.current.dateComponents([.year], from: dateOfBirth, to: Date()).year ?? 0
+        let years = Calendar.current.dateComponents([.year], from: dateOfBirth, to: Date()).year
+        return years ?? 0
     }
 
-    /// Body-mass index – informational only.
+    /// Body Mass Index (BMI) calculated from height and weight.
     public var bmi: Double {
-        bodyWeightKg / pow(heightCm / 100, 2)
+        // BMI = weight (kg) / [height (m)]^2
+        let heightM = heightCm / 100.0
+        return bodyWeightKg / (heightM * heightM)
     }
 
-    // MARK: Init & Validation
+    // MARK: Initialization
 
     public init(
-        id: UUID = .init(),
+        id: UUID = UUID(),
         givenName: String,
         dateOfBirth: Date,
         biologicalSex: BiologicalSex,
@@ -75,10 +50,9 @@ public struct UserProfile: Identifiable, Hashable, Codable {
         experienceLevel: ExperienceLevel = .novice,
         primaryGoal: TrainingGoal = .hypertrophy
     ) {
-        precondition(!givenName.isEmpty, "givenName must not be empty")
-        precondition(heightCm > 0, "heightCm must be positive")
-        precondition(bodyWeightKg > 0, "bodyWeightKg must be positive")
-
+        precondition(!givenName.isEmpty, "givenName must not be empty.")
+        precondition(heightCm > 0, "heightCm must be positive.")
+        precondition(bodyWeightKg > 0, "bodyWeightKg must be positive.")
         self.id = id
         self.givenName = givenName
         self.dateOfBirth = dateOfBirth
@@ -90,22 +64,18 @@ public struct UserProfile: Identifiable, Hashable, Codable {
     }
 }
 
-// MARK: - Supporting Enums
-
-public enum BiologicalSex: String, Codable, CaseIterable {
-    case male
-    case female
-    case other
-    case preferNotToSay
+/// Biological sex options.
+public enum BiologicalSex: String, Codable, CaseIterable, Sendable {
+    case male, female, other, preferNotToSay
 }
 
-public enum ExperienceLevel: String, Codable, CaseIterable {
-    case novice
-    case intermediate
-    case advanced
+/// Experience levels for training.
+public enum ExperienceLevel: String, Codable, CaseIterable, Sendable {
+    case novice, intermediate, advanced
 }
 
-public enum TrainingGoal: String, Codable, CaseIterable {
+/// Primary training goal guiding programming.
+public enum TrainingGoal: String, Codable, CaseIterable, Sendable {
     case hypertrophy
     case strength
     case fatLoss

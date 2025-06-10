@@ -1,3 +1,4 @@
+// OnboardingExperienceView.swift
 //
 //  OnboardingExperienceView.swift
 //  Gainz
@@ -10,7 +11,7 @@ import SwiftUI
 
 // MARK: - TrainingExperience
 /// User-declared lifting experience bracket.
-public enum TrainingExperience: String, CaseIterable, Identifiable {
+public enum TrainingExperience: String, CaseIterable, Identifiable, Sendable {
     case beginner     = "Beginner"
     case intermediate = "Intermediate"
     case advanced     = "Advanced"
@@ -37,6 +38,7 @@ public enum TrainingExperience: String, CaseIterable, Identifiable {
 }
 
 // MARK: - OnboardingExperienceView
+/// Onboarding step for selecting training experience level.
 @MainActor
 public struct OnboardingExperienceView: View {
 
@@ -93,6 +95,7 @@ public struct OnboardingExperienceView: View {
             }
         }
         .pickerStyle(.segmented)
+        .tint(Color.brandPurpleStart)
         .padding(.top, 8)
     }
 
@@ -118,19 +121,6 @@ public struct OnboardingExperienceView: View {
         }
         .disabled(selection == nil)
         .accessibilityHint("Save your experience level and continue")
-    }
-}
-
-// MARK: - Color Extension
-private extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex & 0xFF0000) >> 16) / 255,
-            green: Double((hex & 0x00FF00) >> 8) / 255,
-            blue: Double(hex & 0x0000FF) / 255,
-            opacity: opacity
-        )
     }
 }
 

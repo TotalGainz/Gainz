@@ -1,82 +1,83 @@
-//
-//  LastWeightView.swift
-//  HomeFeature → Widgets
-//
-//  Compact card that shows the athlete’s last logged body-weight.
-//  Designed for reuse in Home tab & small WidgetKit timeline entries.
-//
-//  • Typography & colors come from CoreUI tokens.
-//  • No HRV, recovery, or velocity data—just weight & delta.
-//
-//  Created for Gainz on 27 May 2025.
-//
+// MARK: - LastWeightView.swift
 
 import SwiftUI
-import CoreUI               // Color tokens, Font tokens
-import FeatureSupport       // UnitConversion
+import CoreUI               // Color & Font tokens
+import FeatureSupport       // UnitConversion for unit conversions
 
-// MARK: - LastWeightView
-
+/// A compact card showing the athlete’s last logged body weight and delta.
 public struct LastWeightView: View {
+    // MARK: Properties
 
-    // MARK: Dependencies
-
-    private let weightKg: Double        // last log in kilograms
-    private let deltaKg: Double?        // change vs previous log
+    private let weightKg: Double
+    private let deltaKg: Double?
+    private let hasNoData: Bool
 
     // MARK: Init
 
-    public init(weightKg: Double, deltaKg: Double? = nil) {
-        self.weightKg = weightKg
-        self.deltaKg  = deltaKg
+    public init(weightKg: Double?, deltaKg: Double? = nil) {
+        self.hasNoData = (weightKg == nil)
+        self.weightKg  = weightKg ?? 0.0
+        // Only use delta if weight data exists
+        self.deltaKg   = weightKg == nil ? nil : deltaKg
     }
 
     // MARK: Body
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Body-Weight")
+            Text(NSLocalizedString("Body-Weight", comment: "Body weight label"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(CoreUI.Color.secondaryText)
-
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(weightString)
+            if hasNoData {
+                // No weight data: show placeholder
+                Text("— kg")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(CoreUI.Color.primaryText)
-
-                if let deltaKg {
-                    DeltaBadge(delta: deltaKg)
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(weightString)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(CoreUI.Color.primaryText)
+                    if let deltaKg = deltaKg {
+                        DeltaBadge(delta: deltaKg)
+                    }
                 }
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(CoreUI.Color.cardBackground)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityString)
+        .accessibilityLabel(accessibilityLabelText)
     }
 
-    // MARK: Computed
+    // MARK: - Computed Text
 
+    /// Combined weight in kg and lb (e.g., "83.2 kg / 183.4 lb").
     private var weightString: String {
         let lbs = UnitConversion.kgToLb(weightKg, roundedTo: 1)
         return String(format: "%.1f kg / %.1f lb", weightKg, lbs)
     }
 
-    private var accessibilityString: String {
-        if let deltaKg {
-            let sign = deltaKg > 0 ? "up" : "down"
-            return "\(weightKg) kilograms, \(sign) \(abs(deltaKg)) kilograms since last log."
+    /// Accessibility description for VoiceOver.
+    private var accessibilityLabelText: String {
+        if hasNoData {
+            return NSLocalizedString("No recent body-weight log.", comment: "No weight data message")
+        } else if let delta = deltaKg {
+            let direction = delta > 0 ? NSLocalizedString("up", comment: "Weight increased")
+                                      : NSLocalizedString("down", comment: "Weight decreased")
+            return String(format: NSLocalizedString("%.1f kilograms, %@ %.1f kilograms since last log.", comment: "Weight with change since last log"),
+                          weightKg, direction, abs(delta))
         } else {
-            return "\(weightKg) kilograms."
+            return String(format: NSLocalizedString("%.1f kilograms.", comment: "Weight with no change data"), weightKg)
         }
     }
 }
 
-// MARK: - DeltaBadge
+// MARK: - DeltaBadge (subview for weight delta indicator)
 
 private struct DeltaBadge: View {
     let delta: Double
@@ -87,37 +88,15 @@ private struct DeltaBadge: View {
 
         return HStack(spacing: 2) {
             Image(systemName: symbol)
-            Text(deltaText)
+            Text(String(format: "%.1f kg", abs(delta)))
         }
         .font(.caption2)
         .foregroundStyle(color)
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(
-            Capsule()
+            Capsule(style: .continuous)
                 .fill(color.opacity(0.12))
         )
     }
-
-    private var deltaText: String {
-        String(format: "%.1f kg", abs(delta))
-    }
 }
-
-// MARK: - Preview
-
-#if DEBUG
-struct LastWeightView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            LastWeightView(weightKg: 83.2, deltaKg: 0.4)
-                .previewLayout(.sizeThatFits)
-                .padding()
-            LastWeightView(weightKg: 83.2, deltaKg: -0.5)
-                .preferredColorScheme(.dark)
-                .previewLayout(.sizeThatFits)
-                .padding()
-        }
-    }
-}
-#endif

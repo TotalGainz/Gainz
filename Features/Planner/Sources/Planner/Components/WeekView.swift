@@ -10,7 +10,7 @@
 //  • Pure SwiftUI – no UIKit bridging.
 //  • No persistence; external ViewModel publishes `DayPlan` array.
 //  • Zero HRV / velocity / recovery metrics.
-//
+// 
 //  Created for Gainz on 27 May 2025.
 //
 
@@ -22,7 +22,6 @@ import CoreUI          // Color/Font tokens
 
 /// Displays one week of `DayPlan` cards with drag-and-drop reordering.
 public struct WeekView<VM: WeekViewModeling>: View {
-
     // Dependency inversion for testability
     @ObservedObject private var viewModel: VM
     @Namespace private var dragNamespace
@@ -32,29 +31,27 @@ public struct WeekView<VM: WeekViewModeling>: View {
     }
 
     public var body: some View {
-        LazyVGrid(columns: Self.gridColumns,
-                  spacing: 8) {
+        LazyVGrid(columns: Self.gridColumns, spacing: 8) {
             ForEach(viewModel.dayPlans) { day in
                 DayCard(day: day,
                         isToday: Calendar.current.isDateInToday(day.date),
                         isDragging: viewModel.draggingId == day.id)
-                    .matchedGeometryEffect(id: day.id,
-                                           in: dragNamespace,
-                                           isSource: viewModel.draggingId == day.id)
+                    .matchedGeometryEffect(id: day.id, in: dragNamespace,
+                                            isSource: viewModel.draggingId == day.id)
                     .onDrag {
+                        // Set draggingId and provide an NSItemProvider (with UUID string) for the drag.
                         viewModel.draggingId = day.id
                         return NSItemProvider(object: day.id.uuidString as NSString)
                     }
-                    .onDrop(of: [.text], delegate:
-                                WeekReorderDropDelegate(day: day, viewModel: viewModel))
+                    .onDrop(of: [.text], delegate: WeekReorderDropDelegate(day: day, viewModel: viewModel))
             }
         }
-        .animation(.spring(duration: 0.25), value: viewModel.dayPlans)
+        .animation(.spring(duration: 0.25), value: viewModel.dayPlans)  // animate reordering changes
         .padding(.horizontal, 8)
     }
 
-    // MARK: Grid
-
+    // MARK: Grid Layout
+    
     private static let gridColumns: [GridItem] = Array(
         repeating: GridItem(.flexible(minimum: 44), spacing: 8),
         count: 7
@@ -72,14 +69,12 @@ private struct DayCard: View {
         VStack(spacing: 4) {
             Text(day.weekdaySymbol)
                 .font(.subheadline.weight(.medium))
-                .foregroundColor(isToday ? CoreUI.Colors.accent : .primary)
-
+                .foregroundColor(isToday ? Color.accent : .primary)
             Text("\(day.workoutCount)")
                 .font(.title2.bold())
                 .foregroundColor(.primary)
-
-            if let vol = day.totalReps {
-                Text("\(vol) reps")
+            if let reps = day.totalReps {
+                Text("\(reps) reps")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -88,9 +83,8 @@ private struct DayCard: View {
         .padding(6)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isToday ? CoreUI.Colors.cardToday
-                               : CoreUI.Colors.cardBase)
-                .opacity(isDragging ? 0.3 : 1)
+                .fill(isToday ? Color.cardToday : Color.cardBase)
+                .opacity(isDragging ? 0.3 : 1)  // make dragged item semi-transparent
         )
     }
 }
@@ -101,10 +95,13 @@ private struct WeekReorderDropDelegate<VM: WeekViewModeling>: DropDelegate {
     let day: DayPlan
     let viewModel: VM
 
-    func validateDrop(info: DropInfo) -> Bool { true }
+    func validateDrop(info: DropInfo) -> Bool {
+        true  // allow drop on any day
+    }
 
     func performDrop(info: DropInfo) -> Bool {
         guard let sourceId = viewModel.draggingId else { return false }
+        // Trigger viewModel to reorder from the dragged source day to this target day.
         viewModel.reorder(from: sourceId, to: day.id)
         viewModel.draggingId = nil
         return true
@@ -113,12 +110,12 @@ private struct WeekReorderDropDelegate<VM: WeekViewModeling>: DropDelegate {
 
 // MARK: - Protocols & DTOs
 
-/// Lightweight DTO for UI.
+/// Lightweight DTO for UI representing a single day and its summary.
 public struct DayPlan: Identifiable, Hashable {
     public let id: UUID
     public let date: Date
-    public let workoutCount: Int
-    public let totalReps: Int?
+    public let workoutCount: Int      // number of workouts (typically 0 or 1)
+    public let totalReps: Int?        // total reps planned (optional for days with workouts)
 
     public init(id: UUID = .init(),
                 date: Date,
@@ -131,11 +128,12 @@ public struct DayPlan: Identifiable, Hashable {
     }
 
     var weekdaySymbol: String {
+        // Abbreviated weekday name (e.g., Mon, Tue)
         date.formatted(.dateTime.weekday(.abbreviated))
     }
 }
 
-/// ViewModel contract – allows preview mocks & unit tests.
+/// ViewModel contract – allows preview mocks & unit tests to drive WeekView.
 public protocol WeekViewModeling: ObservableObject {
     var dayPlans: [DayPlan] { get }
     var draggingId: UUID? { get set }
@@ -145,7 +143,7 @@ public protocol WeekViewModeling: ObservableObject {
 // MARK: - Previews
 
 #if DEBUG
-import FeatureSupport   // UnitConversion (optional demo numbers)
+import FeatureSupport   // UnitConversion (for optional demo numbers)
 
 private final class PreviewVM: WeekViewModeling {
     @Published var dayPlans: [DayPlan] = Calendar.current.generateWeek()
@@ -154,6 +152,7 @@ private final class PreviewVM: WeekViewModeling {
     func reorder(from sourceId: UUID, to destinationId: UUID) {
         guard let fromIdx = dayPlans.firstIndex(where: { $0.id == sourceId }),
               let toIdx   = dayPlans.firstIndex(where: { $0.id == destinationId }) else { return }
+        // Reorder array: move item from fromIdx to toIdx position.
         dayPlans.move(fromOffsets: IndexSet(integer: fromIdx), toOffset: toIdx > fromIdx ? toIdx + 1 : toIdx)
     }
 }
@@ -161,7 +160,7 @@ private final class PreviewVM: WeekViewModeling {
 private extension Calendar {
     func generateWeek() -> [DayPlan] {
         let today = startOfDay(for: .init())
-        return (0..<7).compactMap { offset -> DayPlan? in
+        return (0..<7).compactMap { offset in
             guard let date = date(byAdding: .day, value: offset, to: today) else { return nil }
             return DayPlan(date: date,
                            workoutCount: offset % 3 == 0 ? 1 : 0,

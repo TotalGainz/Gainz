@@ -1,15 +1,13 @@
-//
 //  AnalyticsViewModel.swift
 //  Gainz
 //
 //  Created by AI on 2025-06-03.
 //  © Echelon Commerce LLC. All rights reserved.
 //
-//  Responsibilities (doc refs):
-//  • Orchestrate HealthKit + workout DB fetch, calculate FFMI/BMI & strength tiers, expose Swift Charts models
-//    per spec “AnalyticsVM” tech snapshot  [oai_citation:0‡body and strength leaderboard.txt](file-service://file-NeVSoNpijvv9ywpESL2jNm)
-//  • Provide data to AnalyticsView (scrollable dashboard w/ Body • Strength • Recovery segments)  [oai_citation:1‡repo explanation for o3 (UPDATED).txt](file-service://file-CnLa5rmYAZJgvi98KEwAKv)
-//  • Exclude HRV/velocity tracking per latest requirements
+//  Responsibilities:
+//  • Orchestrate HealthKit + workout DB fetch, calculate BMI/FFMI & strength tiers, expose derived models.
+//  • Provide data to AnalyticsView (scrollable dashboard with Body, Strength, Recovery segments).
+//  • Exclude HRV and bar-velocity tracking per latest requirements.
 //
 
 import Foundation
@@ -17,9 +15,8 @@ import Combine
 import SwiftUI
 import HealthKit
 
-import Domain                // Exercise, WorkoutSession, HealthMetric
-import CorePersistence       // AnyCoreDataStore
-import AnalyticsService      // StrengthLevel percentile & smoothing utils
+import Domain            // Domain models (Exercise, WorkoutSession, HealthMetric, etc.)
+import CorePersistence   // Data persistence layer (Core Data wrappers)
 import CoreUI
 
 @MainActor
@@ -27,134 +24,98 @@ public final class AnalyticsViewModel: ObservableObject {
 
     // MARK: - Published Dashboard State
 
-    /// Weight, BF %, BMI, FFMI tiles
+    /// Key body composition stats (Weight, Body Fat %, BMI, FFMI, Steps, Calories).
     @Published public private(set) var vitalStats: [VitalStatTile] = []
-
-    /// Strength scorecard + lift trends
+    /// Strength scorecard metrics (composite strength score and individual lift stats).
     @Published public private(set) var strengthMetrics: StrengthDashboard = .placeholder
-
-    /// Muscle-heatmap tint values 0–5 (gray → purple) keyed by `MuscleGroup`
+    /// Muscle strength heatmap values (tier 0–5 per MuscleGroup, 0 = no data).
     @Published public private(set) var heatmap: [MuscleGroup: Int] = [:]
-
-    /// Share-card PNG generated on demand
-    @Published public private(set) var shareCardImage: UIImage?
+    /// Share sheet payload for progress card.
+    @Published public var sharePayload: ShareCardPayload?
 
     // MARK: - Dependencies
 
-    private let healthStore: HKHealthStore
-    private let persistence: AnyCoreDataStore
-    private let analytics: AnalyticsProcessing
+    private let analyticsUseCase: CalculateAnalyticsUseCase
     private let calendar: Calendar
-    private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Init
+    // MARK: - Initialization
 
-    public init(
-        healthStore: HKHealthStore                       = .init(),
-        persistence: AnyCoreDataStore                    = .live,
-        analytics: AnalyticsProcessing                   = .live,
-        calendar: Calendar                               = .current
-    ) {
-        self.healthStore  = healthStore
-        self.persistence  = persistence
-        self.analytics    = analytics
-        self.calendar     = calendar
-
-        Task { await refreshAll() }
+    public init(analyticsUseCase: CalculateAnalyticsUseCase, calendar: Calendar = .current) {
+        self.analyticsUseCase = analyticsUseCase
+        self.calendar = calendar
     }
 
     // MARK: - Public API
 
-    /// Pulls latest HealthKit + workout data and updates all published dashboards.
+    /// Refreshes all dashboard data by fetching latest metrics and computing derived values.
     public func refreshAll() async {
-        async let body = fetchBodyMetrics()
-        async let str  = fetchStrengthMetrics()
-        async let map  = buildMuscleHeatmap()
-
         do {
-            let (vitals, strength, heat) = try await (body, str, map)
-            vitalStats       = vitals
-            strengthMetrics  = strength
-            heatmap          = heat
+            async let vitalTiles = analyticsUseCase.fetchVitalStatTiles(granularity: .day)
+            async let strengthData = analyticsUseCase.fetchStrengthDashboard(since: calendar.date(byAdding: .month, value: -6, to: Date()) ?? Date())
+            async let muscleMap = analyticsUseCase.fetchMuscleHeatmap()
+            let (vitals, strength, heat) = try await (vitalTiles, strengthData, muscleMap)
+            self.vitalStats = vitals.filter { $0.kind != .hrv }  // Exclude HRV if present.
+            self.strengthMetrics = strength
+            self.heatmap = heat
         } catch {
-            // TODO: surface user-friendly error state
-            print("Analytics refresh error:", error)
+            // Handle errors gracefully (e.g., log or provide user feedback).
+            print("AnalyticsViewModel refresh error: \(error)")
         }
     }
 
-    /// Generates a shareable progress card PNG (non-blocking).
-    public func generateShareCard() {
-        Task.detached(priority: .userInitiated) { [heatmap, strengthMetrics] in
-            let renderer = ShareCardRenderer(
-                heatmap: heatmap,
-                strength: strengthMetrics)               // spec in ShareCardGenerator.swift  [oai_citation:2‡repo explanation for o3 (UPDATED).txt](file-service://file-CnLa5rmYAZJgvi98KEwAKv)
-            let img = await renderer.render()
-            await MainActor.run { self.shareCardImage = img }
+    /// Initiates share sheet payload generation for the progress card.
+    public func shareTapped() {
+        // Create share card payload from current state.
+        let total = Int(strengthMetrics.totalStrengthScore)
+        let headline = "5-Lift Total \(total) kg"
+        // Compute an approximate percentile ranking (average of lift percentiles).
+        let avgPercentile = strengthMetrics.lifts.map { $0.percentile }.reduce(0.0, +) / Double(max(strengthMetrics.lifts.count, 1))
+        let topPercent = max(0, 100 - Int(avgPercentile * 100))
+        let subheadline = "You're in the Top \(topPercent)%!"
+        // Use up to 3 top lifts for share metrics.
+        let metrics: [ShareCardPayload.Metric] = strengthMetrics.lifts.prefix(3).map {
+            ShareCardPayload.Metric(name: $0.exercise.name, value: "\(Int($0.oneRM)) kg")
         }
+        sharePayload = ShareCardPayload(headline: headline, subheadline: subheadline, avatarURL: nil, metricRows: metrics)
     }
 
-    // MARK: - Private helpers
+    // MARK: - Supporting Models
 
-    private func fetchBodyMetrics() async throws -> [VitalStatTile] {
-        let samples = try await analytics.fetchRecentHealthMetrics(
-            with: healthStore,
-            granularity: .day)
-        // Apply smoothing & convert to tile view models
-        return analytics.makeVitalStatTiles(from: samples)
-                       .filter { $0.kind != .hrv }        // strip HRV per prompt
-    }
-
-    private func fetchStrengthMetrics() async throws -> StrengthDashboard {
-        let sessions = try await persistence.fetchWorkoutSessions(
-            since: calendar.date(byAdding: .month, value: -6, to: Date())!)
-        return analytics.calculateStrengthDashboard(from: sessions)
-    }
-
-    private func buildMuscleHeatmap() async throws -> [MuscleGroup: Int] {
-        let lifts = try await persistence.fetchPersonalBests()
-        return analytics.makeHeatmap(from: lifts,
-                                     tierTable: StrengthLevelTable.shared) // StrengthLevel JSON bundle  [oai_citation:3‡body and strength leaderboard.txt](file-service://file-NeVSoNpijvv9ywpESL2jNm)
-    }
-}
-
-// MARK: - Supporting Models
-
-public struct VitalStatTile: Identifiable {
-    public enum Kind { case weight, bf, bmi, ffmi, steps, calories }
-    public let id = UUID()
-    public let kind: Kind
-    public let value: Double
-    public let unit: String
-    public let delta: Double?          // 7-day rolling change
-    public let color: Color
-}
-
-public struct StrengthDashboard {
-    public var totalStrengthScore: Double
-    public var lifts: [LiftMetric]
-
-    public static let placeholder = StrengthDashboard(
-        totalStrengthScore: 0,
-        lifts: [])
-
-    public struct LiftMetric: Identifiable {
+    /// Simple data model for vital stat tiles.
+    public struct VitalStatTile: Identifiable {
+        public enum Kind: String {
+            case weight, bodyFat, bmi, ffmi, steps, calories, hrv
+        }
         public let id = UUID()
-        public let exercise: Exercise
-        public let oneRM: Double
-        public let percentile: Double
+        public let kind: Kind
+        public let value: Double
+        public let unit: String
+        public let delta: Double?          // 7-day change (nil if not applicable).
+        public let color: Color
     }
-}
 
-// MARK: - Mock / Preview
+    /// Composite strength metrics (total score and individual lifts).
+    public struct StrengthDashboard {
+        public var totalStrengthScore: Double
+        public var lifts: [LiftMetric]
 
-#if DEBUG
-extension AnalyticsViewModel {
-    public static var preview: AnalyticsViewModel {
-        let vm = AnalyticsViewModel(
-            healthStore: .init(),
-            persistence: .preview,
-            analytics: .preview)
-        return vm
+        public static let placeholder = StrengthDashboard(totalStrengthScore: 0, lifts: [])
+
+        public struct LiftMetric: Identifiable {
+            public let id = UUID()
+            public let exercise: Exercise    // Domain model for the lift (name, type, etc.)
+            public let oneRM: Double         // One-rep max weight for this exercise.
+            public let percentile: Double    // Percentile ranking for this oneRM.
+        }
     }
+
+    // MARK: - Preview Support
+
+    #if DEBUG
+    extension AnalyticsViewModel {
+        public static var preview: AnalyticsViewModel {
+            AnalyticsViewModel(analyticsUseCase: .preview)
+        }
+    }
+    #endif
 }
-#endif

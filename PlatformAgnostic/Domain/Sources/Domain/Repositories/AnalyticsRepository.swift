@@ -1,56 +1,29 @@
-//
-//  AnalyticsRepository.swift
-//  Domain – Repositories
-//
-//  Contract for ingesting workout logs and querying hypertrophy-centric
-//  analytics. Pure protocol + simple value types so the Domain layer
-//  remains platform-agnostic (Foundation-only import).
-//
-//  ❌  No HRV, recovery-score, or bar-velocity metrics.
-//  ✅  Volume, tonnage, PR progression, estimated 1 RM.
-//
-//  Created for Gainz on 27 May 2025.
-//
+/// AnalyticsRepository.swift
 
 import Foundation
 
-// MARK: - AnalyticsRepository
+// MARK: - AnalyticsRepository Protocol
 
-/// Facade through which Domain use-cases record new data points and
-/// retrieve derived analytics.
-///
-/// Implementations live in CorePersistence or remote services; tests can
-/// inject mocks or in-memory stubs.
-public protocol AnalyticsRepository {
-
-    /// Persist a newly completed set so aggregate metrics can update.
+/// Interface for recording new training data points and retrieving derived analytics.
+public protocol AnalyticsRepository: Sendable {
+    /// Record a newly completed set (for use in analytics aggregation).
     func record(set: LoggedSet) async throws
 
-    /// Weekly volume (sets × reps) for a muscle group across a date span.
-    func fetchWeeklyVolume(
-        muscle: MuscleGroup,
-        within range: DateInterval
-    ) async throws -> [WeeklyVolumeSample]
+    /// Fetch weekly volume (total reps) for a given muscle group within a date interval.
+    func fetchWeeklyVolume(muscle: MuscleGroup, within range: DateInterval) async throws -> [WeeklyVolumeSample]
 
-    /// Per-exercise personal records (heaviest load or most reps per load).
-    func fetchPersonalRecords(
-        exerciseId: UUID
-    ) async throws -> [PersonalRecordSample]
+    /// Fetch personal record entries (e.g., heaviest set) for a given exercise.
+    func fetchPersonalRecords(exerciseId: UUID) async throws -> [PersonalRecordSample]
 
-    /// Estimated 1 RM progression curve for a given exercise.
-    func fetchEstimatedOneRepMax(
-        exerciseId: UUID,
-        within range: DateInterval
-    ) async throws -> [OneRepMaxSample]
+    /// Fetch estimated 1RM samples for a given exercise over time.
+    func fetchEstimatedOneRepMax(exerciseId: UUID, within range: DateInterval) async throws -> [OneRepMaxSample]
 }
 
-// MARK: - Value Types
-
-/// Minimal representation of a logged set (Domain aggregate).
-public struct LoggedSet: Hashable, Codable {
+/// A minimal representation of a logged set for analytics purposes.
+public struct LoggedSet: Hashable, Codable, Sendable {
     public let date: Date
     public let exerciseId: UUID
-    public let weight: Double     // in kilograms
+    public let weight: Double
     public let reps: Int
     public let rpe: RPE?
 
@@ -63,29 +36,37 @@ public struct LoggedSet: Hashable, Codable {
     }
 }
 
-/// Time-series sample representing weekly volume for one muscle group.
-public struct WeeklyVolumeSample: Hashable, Codable {
-    public let weekStart: Date          // ISO week Monday
+/// A sample data point for weekly volume (total reps) of a muscle group.
+public struct WeeklyVolumeSample: Hashable, Codable, Sendable {
+    public let weekStart: Date      // The starting Monday of the week
     public let totalReps: Int
+
+    public init(weekStart: Date, totalReps: Int) {
+        self.weekStart = weekStart
+        self.totalReps = totalReps
+    }
 }
 
-/// Snapshot of a personal record event.
-public struct PersonalRecordSample: Hashable, Codable {
+/// A record of a personal best for an exercise (either heaviest weight or most reps at a weight).
+public struct PersonalRecordSample: Hashable, Codable, Sendable {
     public let date: Date
-    public let weight: Double           // kg
+    public let weight: Double
     public let reps: Int
+
+    public init(date: Date, weight: Double, reps: Int) {
+        self.date = date
+        self.weight = weight
+        self.reps = reps
+    }
 }
 
-/// Data point for estimated 1 RM over time.
-public struct OneRepMaxSample: Hashable, Codable {
+/// A data point for an estimated one-rep-max on a certain date.
+public struct OneRepMaxSample: Hashable, Codable, Sendable {
     public let date: Date
-    public let estimatedOneRM: Double   // kg
-}
+    public let estimatedOneRM: Double
 
-// MARK: - AnalyticsRepositoryError
-
-public enum AnalyticsRepositoryError: Error {
-    case dataCorrupted
-    case notFound
-    case underlying(Error)
+    public init(date: Date, estimatedOneRM: Double) {
+        self.date = date
+        self.estimatedOneRM = estimatedOneRM
+    }
 }

@@ -37,18 +37,20 @@ final class ExerciseLibraryViewModel: ObservableObject {
         bind()
     }
 
+    /// Load all exercises from persistence and initialize filter list.
     func load() async {
         allExercises = await repo.fetchAllExercises()
         filtered = allExercises
     }
 
+    /// Set up search text publisher to debounce filtering to 250ms.
     private func bind() {
         // Debounce search to 250 ms so grid does not churn on every keystroke.
         $searchText
             .removeDuplicates()
             .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main)
             .sink { [weak self] text in
-                guard let self else { return }
+                guard let self = self else { return }
                 if text.isEmpty {
                     filtered = allExercises
                 } else {
@@ -66,15 +68,16 @@ final class ExerciseLibraryViewModel: ObservableObject {
 struct ExerciseLibraryView: View {
     // Dependencies
     @StateObject private var viewModel: ExerciseLibraryViewModel
-    // Grid layout
+    // Use horizontal size class to adjust layout if needed (not used in this grid, but available for adaptations)
     @Environment(\.horizontalSizeClass) private var hSize
 
     init(repo: ExerciseRepository) {
         _viewModel = StateObject(wrappedValue: ExerciseLibraryViewModel(repo: repo))
     }
 
+    /// Adaptive grid with one column that auto-sizes to fit as many cells as possible per row.
     private var adaptiveColumns: [GridItem] {
-        // .adaptive auto-tunes cell count across iPhone/iPad sizes  [oai_citation:9‡Stack Overflow](https://stackoverflow.com/questions/78662416/how-to-create-a-dynamic-grid-that-changes-column-size-when-a-subviews-width-cha?utm_source=chatgpt.com)
+        // Use .adaptive to automatically adjust number of columns based on available width. [oai_citation:9‡Stack Overflow](https://stackoverflow.com/questions/78662416/how-to-create-a-dynamic-grid-that-changes-column-size-when-a-subviews-width-cha?utm_source=chatgpt.com)
         [GridItem(.adaptive(minimum: 140), spacing: 16)]
     }
 
@@ -83,18 +86,20 @@ struct ExerciseLibraryView: View {
             LazyVGrid(columns: adaptiveColumns, spacing: 16) {
                 ForEach(viewModel.filtered) { exercise in
                     ExerciseCard(exercise: exercise)
+                        // Enable drag-and-drop: encode Exercise as JSON data for dragging.
                         .onDrag {
                             try? JSONEncoder().encode(exercise).asNSItemProvider()
                         }
                 }
             }
             .padding(.horizontal, 16)
-            .animation(.default, value: viewModel.filtered)
+            .animation(.default, value: viewModel.filtered)  // Animate grid changes (e.g., when filtering results)
         }
         .navigationTitle("Exercise Library")
         .searchable(text: $viewModel.searchText,
                     placement: .navigationBarDrawer(displayMode: .always))
         .task {
+            // Load exercises when view appears.
             await viewModel.load()
         }
     }
@@ -110,7 +115,6 @@ private struct ExerciseCard: View {
             Text(exercise.name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
-
             Text(exercise.primaryMuscles.map(\.displayName).joined(separator: ", "))
                 .font(.caption)
                 .foregroundColor(.secondary)

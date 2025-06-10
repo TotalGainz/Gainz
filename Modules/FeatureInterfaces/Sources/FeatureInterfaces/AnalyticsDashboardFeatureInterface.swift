@@ -1,4 +1,3 @@
-//
 //  AnalyticsDashboardFeatureInterface.swift
 //  FeatureInterfaces
 //
@@ -15,7 +14,6 @@
 //
 //  Created for Gainz on 27 May 2025.
 //
-
 import Foundation
 
 // MARK: - AnalyticsDashboardFeatureInterface
@@ -39,7 +37,7 @@ public protocol AnalyticsDashboardFeatureInterface: AnyObject {
     func makeDashboardView() -> Any
 }
 
-// MARK: - Extension Helpers (Optional)
+// MARK: - Extension Helpers
 
 public extension AnalyticsDashboardFeatureInterface {
 
@@ -48,3 +46,24 @@ public extension AnalyticsDashboardFeatureInterface {
         Task { try? await preload() }
     }
 }
+
+#if canImport(SwiftUI)
+import SwiftUI
+
+// MARK: - Environment Key
+
+private struct AnalyticsDashboardInterfaceKey: EnvironmentKey {
+    static let defaultValue: AnalyticsDashboardFeatureInterface? = nil
+}
+
+public extension EnvironmentValues {
+    /// Dependency-injection hook for the Analytics Dashboard feature.
+    /// ```swift
+    /// @Environment(\.analyticsDashboard) private var analyticsDashboard
+    /// ```
+    var analyticsDashboard: AnalyticsDashboardFeatureInterface? {
+        get { self[AnalyticsDashboardInterfaceKey.self] }
+        set { self[AnalyticsDashboardInterfaceKey.self] = newValue }
+    }
+}
+#endif

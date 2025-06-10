@@ -1,19 +1,4 @@
-// swift-tools-version:5.9
-//
-//  Package.swift
-//  Modules/CoreNetworking
-//
-//  Gainz ▸ Lightweight REST & realtime gateway for all platforms.
-//  Depends only on Foundation and async/await—zero third-party baggage
-//  so the module compiles on iOS, watchOS, macOS, visionOS, and Linux.
-//
-//  ─────────────────────────────────────────────────────────────────
-//
-//  To add external clients (e.g., AsyncHTTPClient for server builds),
-//  extend the target conditionally with #if os(Linux) in Sources.
-//
-//  Created on 27 May 2025.
-//
+// swift-tools-version: 5.10
 
 import PackageDescription
 
@@ -22,8 +7,9 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [
         .iOS(.v17),
+        .macOS(.v13),
+        .tvOS(.v17),
         .watchOS(.v10),
-        .macOS(.v14),
         .visionOS(.v1)
     ],
     products: [
@@ -32,14 +18,24 @@ let package = Package(
             targets: ["CoreNetworking"]
         )
     ],
+    dependencies: [
+        // Internal model layer
+        .package(path: "../Domain"),
+        // Combine helpers for reactive pipelines
+        .package(url: "https://github.com/CombineCommunity/CombineExt.git", from: "1.5.0")
+    ],
     targets: [
         .target(
             name: "CoreNetworking",
-            dependencies: [],
+            dependencies: [
+                "Domain",
+                .product(name: "CombineExt", package: "CombineExt")
+            ],
             path: "Sources",
             swiftSettings: [
-                // Treat warnings as errors in CI
-                .unsafeFlags(["-warnings-as-errors"], .when(configuration: .release))
+                // Strict concurrency with actor-isolated URLSession wrappers
+                .enableUpcomingFeature("StrictConcurrency"),
+                .unsafeFlags(["-warnings-as-errors"])
             ]
         ),
         .testTarget(

@@ -1,117 +1,60 @@
-//
-//  MesocyclePlan.swift
-//  Domain – Models
-//
-//  Immutable blueprint for a 4-to-6-week hypertrophy-biased block.
-//  Built on Clean-Architecture guidelines (MVVM / Domain layer) and
-//  literature-backed periodisation theory.
-//
-//  ───── References ─────
-//  Mesocycle fundamentals :contentReference[oaicite:0]{index=0}
-/*  Clean architecture & Swift domain modelling
-    – Apple Swift Tour :contentReference[oaicite:1]{index=1}
-    – Swift immutability & Sendable :contentReference[oaicite:2]{index=2}
-    – MVVM-Clean patterns in iOS :contentReference[oaicite:3]{index=3}
-*/
+/// MesocyclePlan.swift
+
 import Foundation
 
-// MARK: - MesocyclePlan
-
-/// A periodised training block with a clear objective (hypertrophy, strength, peaking).
-///
-/// The plan is composed of sequential `WeekPlan`s; each week owns its `DayPlan`s.
-/// • Pure value type, Sendable & Codable → safe across concurrency domains.
-/// • No HRV, recovery, or bar-speed parameters—volume & effort only.
-///
+/// A periodized training block (mesocycle) consisting of multiple weeks of planned workouts.
 public struct MesocyclePlan: Identifiable, Hashable, Codable, Sendable {
-
     // MARK: Core Fields
+
     public let id: UUID
+    /// The primary objective of this mesocycle (e.g., hypertrophy or strength).
     public let objective: Objective
-    public let startDate: Date
-    public let weeks: [WeekPlan]
+    /// Number of weeks in this mesocycle.
+    public let weeks: Int
+    /// All planned workouts in this mesocycle.
+    public let workouts: [WorkoutPlan]
+    /// Free-form notes about the mesocycle.
     public let notes: String?
 
     // MARK: Derived
-    public var lengthInWeeks: Int { weeks.count }
 
-    public var endDate: Date {
-        guard
-            let lastDay = weeks.last?.days.last,
-            let finalDate = Calendar.current.date(byAdding: .day,
-                                                  value: weeks.count * 7 - 1,
-                                                  to: startDate)
-        else { return startDate }
-        return max(finalDate, lastDay.date)
+    /// The total number of workouts in the mesocycle.
+    public var totalWorkouts: Int {
+        workouts.count
     }
 
-    /// Aggregate weekly volume (kg•reps) across the whole mesocycle.
+    /// Total volume (kg·reps) planned across the entire mesocycle (sum of all workouts).
     public var totalVolume: Double {
-        weeks.reduce(0) { $0 + $1.totalVolume }
+        workouts.reduce(0) { total, plan in
+            total + plan.exercises.reduce(0) { $0 + (Double($1.sets) * ($1.percent1RM ?? 0)) }
+        }
     }
 
-    // MARK: Init
+    // MARK: Initialization
+
     public init(
-        id: UUID = .init(),
+        id: UUID = UUID(),
         objective: Objective,
-        startDate: Date = .init(),
-        weeks: [WeekPlan],
+        weeks: Int,
+        workouts: [WorkoutPlan],
         notes: String? = nil
     ) {
-        precondition((4...6).contains(weeks.count),
-                     "Mesocycle must be 4–6 weeks long.")
+        precondition((1...12).contains(weeks), "MesocyclePlan weeks must be between 1 and 12.")
+        // Ensure that workout plans align with the specified number of weeks
+        let maxWeekIndex = workouts.map(\.week).max() ?? -1
+        precondition(maxWeekIndex < weeks, "Workout plan has week index out of range for this mesocycle.")
         self.id = id
         self.objective = objective
-        self.startDate = startDate
         self.weeks = weeks
+        self.workouts = workouts
         self.notes = notes
     }
 }
 
-// MARK: - Objective
-public enum Objective: String, Codable, CaseIterable {
+/// Objective of a training mesocycle.
+public enum Objective: String, Codable, CaseIterable, Sendable {
     case hypertrophy
     case strength
     case peaking
     case deload
-}
-
-// MARK: - WeekPlan
-public struct WeekPlan: Hashable, Codable, Sendable {
-
-    public let index: Int          // 1-based within the mesocycle
-    public let days: [DayPlan]
-
-    public var totalVolume: Double {
-        days.reduce(0) { $0 + $1.totalVolume }
-    }
-
-    public init(index: Int, days: [DayPlan]) {
-        precondition(!days.isEmpty && days.count <= 7,
-                     "Week must have 1-7 training days.")
-        self.index = index
-        self.days = days
-    }
-}
-
-// MARK: - DayPlan
-public struct DayPlan: Hashable, Codable, Sendable {
-
-    public struct ExercisePrescription: Hashable, Codable, Sendable {
-        public let exerciseId: UUID
-        public let sets: Int
-        public let reps: Int
-        public let rirTarget: Int
-        public let load: Double     // Suggested starting weight (kg)
-
-        public var setVolume: Double { Double(sets * reps) * load }
-    }
-
-    public let date: Date
-    public let focusMuscleGroups: Set<MuscleGroup>
-    public let prescriptions: [ExercisePrescription]
-
-    public var totalVolume: Double {
-        prescriptions.reduce(0) { $0 + $1.setVolume }
-    }
 }

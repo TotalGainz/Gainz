@@ -1,15 +1,4 @@
-// swift-tools-version: 5.9
-//
-//  package.swift
-//  Gainz ▸ FeatureInterfaces
-//
-//  Defines the public-facing protocols for each Feature package
-//  (Planner, WorkoutLogger, AnalyticsDashboard, etc.) so that Feature
-//  implementations can be swapped or mocked without touching
-//  higher-level code.
-//
-//  Created 27 May 2025.
-//
+// swift-tools-version: 5.10
 
 import PackageDescription
 
@@ -17,10 +6,10 @@ let package = Package(
     name: "FeatureInterfaces",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v16),
-        .watchOS(.v9),
+        .iOS(.v17),
+        .watchOS(.v10),
         .macOS(.v13),
-        .tvOS(.v16),
+        .tvOS(.v17),
         .visionOS(.v1)
     ],
     products: [
@@ -30,8 +19,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        // Domain models shared across all features
-        .package(name: "Domain", path: "../PlatformAgnostic/Domain")
+        .package(path: "../Domain")
     ],
     targets: [
         .target(
@@ -42,5 +30,6 @@ let package = Package(
                 .unsafeFlags(["-warnings-as-errors"], .when(configuration: .release))
             ]
         )
+        // Note: No test target (protocol definitions only)
     ]
 )

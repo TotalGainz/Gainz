@@ -1,4 +1,3 @@
-//
 //  SettingsFeatureInterface.swift
 //  FeatureInterfaces
 //
@@ -14,7 +13,6 @@
 //
 //  Created for Gainz on 27 May 2025.
 //
-
 import Foundation
 import Combine
 import SwiftUI
@@ -59,7 +57,7 @@ public enum PreferenceUpdate {
 // MARK: - Interface
 
 /// Dependency-inverted façade every other module talks to.
-public protocol SettingsFeatureInterface {
+public protocol SettingsFeatureInterface: AnyObject {
 
     /// Root SwiftUI view for Settings, type-erased so UIKit hosts it too.
     /// – Parameter onDismiss: callback when user taps “Done”.
@@ -70,4 +68,21 @@ public protocol SettingsFeatureInterface {
 
     /// Programmatically mutate a subset of preferences.
     func apply(_ update: PreferenceUpdate)
+}
+
+// MARK: - Environment Key
+
+private struct SettingsFeatureKey: EnvironmentKey {
+    static let defaultValue: SettingsFeatureInterface? = nil
+}
+
+public extension EnvironmentValues {
+    /// Dependency-injection hook for the Settings feature.
+    /// ```swift
+    /// @Environment(\.settingsFeature) private var settingsFeature
+    /// ```
+    var settingsFeature: SettingsFeatureInterface? {
+        get { self[SettingsFeatureKey.self] }
+        set { self[SettingsFeatureKey.self] = newValue }
+    }
 }

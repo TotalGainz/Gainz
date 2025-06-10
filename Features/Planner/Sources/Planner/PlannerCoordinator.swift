@@ -8,7 +8,7 @@
 //  • Deep-link entry for “gainz://planner/{date}”
 //
 //  Pure coordination; contains no view code and no persistence logic.
-//  Works with SwiftUI’s `NavigationStack` + `@Observable` path binding.
+//  Works with SwiftUI’s `NavigationStack` via a published `path` binding.
 //
 //  Created for Gainz on 27 May 2025.
 //
@@ -34,7 +34,7 @@ public protocol PlannerCoordinatorProtocol: AnyObject {
 @MainActor
 public final class PlannerCoordinator: ObservableObject, PlannerCoordinatorProtocol {
 
-    // MARK: Navigation enums
+    // MARK: Navigation Enums
 
     public enum Route: Hashable, Identifiable {
         case workoutDetail(date: Date)
@@ -55,12 +55,13 @@ public final class PlannerCoordinator: ObservableObject, PlannerCoordinatorProto
 
         public var id: String {
             switch self {
-            case let .duplicatePlan(id): return "duplicate-\(id.uuidString)"
+            case let .duplicatePlan(id):
+                return "duplicate-\(id.uuidString)"
             }
         }
     }
 
-    // MARK: Published state consumed by SwiftUI
+    // MARK: Published Navigation State
 
     @Published public var path: [Route] = []
     @Published public var activeSheet: Sheet?
@@ -76,19 +77,22 @@ public final class PlannerCoordinator: ObservableObject, PlannerCoordinatorProto
         self.repository = repository
     }
 
-    // MARK: Route pushes
+    // MARK: Route Pushes
 
     public func pushWorkoutDetail(date: Date) {
+        // Append a workout detail destination onto the navigation path.
         path.append(.workoutDetail(date: date))
     }
 
     public func pushExerciseEditor(planID: UUID, exerciseID: UUID?) {
+        // Append an exercise editor destination (for creating or editing an ExercisePlan).
         path.append(.exerciseEditor(planID: planID, exerciseID: exerciseID))
     }
 
-    // MARK: Sheet management
+    // MARK: Sheet Management
 
     public func presentDuplicationSheet(planID: UUID) {
+        // Trigger presentation of a duplication confirmation sheet.
         activeSheet = .duplicatePlan(planID)
     }
 
@@ -96,19 +100,22 @@ public final class PlannerCoordinator: ObservableObject, PlannerCoordinatorProto
         activeSheet = nil
     }
 
-    // MARK: Navigation helpers
+    // MARK: Navigation Helpers
 
     public func pop() {
         _ = path.popLast()
     }
 
-    // MARK: Deep-link handling
+    // MARK: Deep-link Handling
 
     public func deepLink(to url: URL) {
         guard url.scheme == "gainz", url.host == "planner" else { return }
         let components = url.pathComponents.filter { $0 != "/" }
         guard let dateString = components.first,
-              let date = ISO8601DateFormatter().date(from: dateString) else { return }
+              let date = ISO8601DateFormatter().date(from: dateString) else {
+            return
+        }
+        // Deep link opens the Planner and pushes the specified date's workout detail.
         pushWorkoutDetail(date: date)
     }
 }
