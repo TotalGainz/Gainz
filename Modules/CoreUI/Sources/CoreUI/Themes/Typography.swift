@@ -1,3 +1,4 @@
+//
 //  Typography.swift
 //  CoreUI – Themes
 //
@@ -22,25 +23,39 @@ public enum Typography {
     /// 1st-level hero text – e.g. onboarding headlines, empty states.
     public static let display = Font.system(size: 40, weight: .bold, design: .rounded)
 
-    // MARK: Headlines
+    // MARK: Headings
 
-    public static let h1 = Font.system(size: 34, weight: .bold, design: .rounded)
-    public static let h2 = Font.system(size: 28, weight: .semibold, design: .rounded)
-    public static let h3 = Font.system(size: 22, weight: .semibold, design: .rounded)
+    /// Primary heading (Large Title).
+    public static let h1 = Font.system(.largeTitle, design: .rounded)
+
+    /// Secondary heading (Title).
+    public static let h2 = Font.system(.title, design: .rounded)
+
+    /// Tertiary heading (Title2).
+    public static let h3 = Font.system(.title2, design: .rounded)
 
     // MARK: Body
 
-    public static let bodyLarge  = Font.system(size: 17, weight: .regular, design: .rounded)
-    public static let body       = Font.system(size: 15, weight: .regular, design: .rounded)
-    public static let bodySmall  = Font.system(size: 13, weight: .regular, design: .rounded)
+    /// Larger body text (Primary body).
+    public static let bodyLarge = Font.system(.body, design: .rounded)
+
+    /// Standard body text (Secondary body).
+    public static let body = Font.system(.subheadline, design: .rounded)
+
+    /// Small body text (Tertiary body).
+    public static let bodySmall = Font.system(.footnote, design: .rounded)
 
     // MARK: Caption & Footnote
 
-    public static let caption  = Font.system(size: 12, weight: .regular, design: .rounded)
-    public static let footnote = Font.system(size: 11, weight: .regular, design: .rounded)
+    /// Caption or small annotation text.
+    public static let caption = Font.system(.caption, design: .rounded)
+
+    /// Footnote or auxiliary text.
+    public static let footnote = Font.system(.caption2, design: .rounded)
 
     // MARK: Monospaced (for timers, weight inputs, etc.)
 
+    /// Monospaced font for numeric displays (e.g. timers, counters).
     public static let monospace = Font.system(size: 15, weight: .medium, design: .monospaced)
 }
 
@@ -75,23 +90,25 @@ public extension View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    VStack(alignment: .leading, spacing: 8) {
-        Text("Display").typography(Typography.display)
-        Text("Headline 1").typography(Typography.h1)
-        Text("Headline 2").typography(Typography.h2)
-        Text("Headline 3").typography(Typography.h3)
-        Text("Body Large").typography(Typography.bodyLarge)
-        Text("Body").typography(Typography.body)
-        Text("Body Small").typography(Typography.bodySmall)
-        Text("Caption").typography(Typography.caption)
-        Text("Footnote").typography(Typography.footnote)
-        Text("Monospace 123").typography(Typography.monospace)
+#if DEBUG
+struct Typography_Previews: PreviewProvider {
+    static var previews: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Display").typography(Typography.display)
+            Text("Headline 1").typography(Typography.h1)
+            Text("Headline 2").typography(Typography.h2)
+            Text("Headline 3").typography(Typography.h3)
+            Text("Body Large").typography(Typography.bodyLarge)
+            Text("Body").typography(Typography.body)
+            Text("Body Small").typography(Typography.bodySmall)
+            Text("Caption").typography(Typography.caption)
+            Text("Footnote").typography(Typography.footnote)
+            Text("Monospace 123").typography(Typography.monospace)
+        }
+        .padding()
+        .background(Color.black)
+        .foregroundColor(.white)
+        .previewLayout(.sizeThatFits)
     }
-    .padding()
-    .background(Color.black)
-    .foregroundColor(.white)
-    .previewLayout(.sizeThatFits)
 }
+#endif

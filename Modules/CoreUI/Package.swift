@@ -27,8 +27,7 @@ let package = Package(
             dependencies: [],
             path: "Sources",
             resources: [
-                .process("Resources/Assets.xcassets"),
-                .process("Resources/Fonts")
+                .process("Resources")
             ],
             swiftSettings: [
                 .unsafeFlags(["-Xfrontend", "-warn-concurrency"], .when(configuration: .release))

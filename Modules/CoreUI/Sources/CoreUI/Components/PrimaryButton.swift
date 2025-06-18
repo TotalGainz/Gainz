@@ -1,40 +1,42 @@
-//  PrimaryButton.swift
-//  CoreUI – Components
+// PrimaryButton.swift
+// CoreUI – Components
 //
-//  Gainz primary call-to-action button.
-//  • Violet gradient background, 24 pt corner radius.
-//  • Scales down slightly on press for tactile feedback.
-//  • Supports Dynamic Type & Accessibility out of the box.
+// Gainz primary call-to-action button.
+// • Indigo-to-violet gradient background, 24 pt corner radius.
+// • Scales down slightly on press for tactile feedback.
+// • Supports Dynamic Type & Accessibility.
+// • Uses environment-driven colors and typography for theming.
 //
-//  Created on 27 May 2025.
-//
+// Created on 27 May 2025.
 
 import SwiftUI
 
 // MARK: - PrimaryButtonStyle
 
 public struct PrimaryButtonStyle: ButtonStyle {
-
-    // Brand gradient background for the button
-    private let gradient = LinearGradient(
-        colors: [Color.brandIndigo, Color.brandViolet],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    // Inject design tokens from the environment for theming
+    @Environment(\.colorPalette) private var palette
+    @Environment(\.typography) private var typography
 
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline.weight(.semibold))
-            .foregroundColor(.white)
+        let gradient = LinearGradient(
+            gradient: Gradient(colors: palette.brandGradient),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        return configuration.label
+            .font(typography.button)  // Use designated button font (scales with Dynamic Type)
+            .foregroundColor(.white)  // White text on brand gradient
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
+            .frame(maxWidth: .infinity) // Full-width button
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(gradient)
-                    .shadow(color: Color.black.opacity(0.25),
-                            radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 4)
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)  // press-down effect
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0) // Press-down effect
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
             .accessibilityAddTraits(.isButton)
     }
@@ -42,14 +44,13 @@ public struct PrimaryButtonStyle: ButtonStyle {
 
 // MARK: - Convenience API
 
-public extension Button {
+public extension Button where Label == Text {
     /// Creates a full-width primary CTA button with the given title.
-    static func primary(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(PrimaryButtonStyle())
+    /// (Avoids generic label inference by returning a concrete Button<Text>.)
+    static func primary<S: StringProtocol>(_ title: S, action: @escaping () -> Void) -> Button<Text> {
+        // Using the `title` initializer avoids a closure and clarifies the Label type.
+        Button(title, action: action)
+            .buttonStyle(.primary)
     }
 }
 
@@ -62,14 +63,18 @@ public extension ButtonStyle where Self == PrimaryButtonStyle {
 
 // MARK: - Preview
 
-#Preview("Primary Button") {
-    VStack(spacing: 24) {
-        Button.primary("Log Workout") {}
-        Button("Start Session") {}.buttonStyle(.primary)
-            .environment(\.sizeCategory, .accessibilityExtraExtraExtraLarge)
+#if DEBUG
+struct PrimaryButton_Previews: PreviewProvider {
+    static var previews: some View {
+        VStack(spacing: 24) {
+            Button.primary("Log Workout") {}
+            Button("Start Session") {}.buttonStyle(.primary)
+                .environment(\.sizeCategory, .accessibilityExtraExtraExtraLarge)
+        }
+        .padding()
+        .background(Color.black.ignoresSafeArea())
+        .foregroundColor(.white)
+        .previewLayout(.sizeThatFits)
     }
-    .padding()
-    .background(Color.black.ignoresSafeArea())
-    .foregroundColor(.white)
-    .previewLayout(.sizeThatFits)
 }
+#endif
