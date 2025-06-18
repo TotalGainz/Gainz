@@ -1,95 +1,153 @@
-/// ExerciseRepository.swift
+// WorkoutRepository.swift
+// Domain layer – Gainz
+//
+// High‑level persistence gateway for workout sessions and performed sets.
+// This abstraction deliberately avoids leaking any storage‑specific types so
+// that Domain remains platform‑agnostic (SwiftData, CoreData, SQLite, CloudKit, etc.).
+//
+// © 2025 Gainz Labs. MIT License.
 
 import Foundation
 
-// MARK: - ExerciseRepository Protocol
+// MARK: – Repository Protocol
 
-/// Async interface for fetching and persisting `Exercise` entities.
-public protocol ExerciseRepository: Sendable {
-    // MARK: Create/Update
+/// Async interface for fetching and persisting `WorkoutSession` records.
+///
+/// The repository is also responsible for low‑level mutation conveniences such
+/// as appending individual `SetRecord`s during live logging.  Keeping those
+/// writes inside the repository guarantees that invariants on
+/// `WorkoutSession` / `ExerciseLog` are enforced consistently, regardless of
+/// the concrete storage backend.
+public protocol WorkoutRepository: Sendable {
+    /// Fetch a previously stored session.
+    /// - Parameter id: Stable identifier of the desired session.
+    /// - Returns: The matching `WorkoutSession`, or `nil` if it does not exist.
+    func session(id: UUID) async throws -> WorkoutSession?
 
-    /// Save or update the given exercises in the catalog.
-    /// - Throws: `ExerciseRepositoryError.persistenceFailed` on failure.
-    func save(_ exercises: [Exercise]) async throws
+    /// Upsert a whole session. Callers supply a fully‑formed immutable object
+    /// (e.g. when importing history or finalising a live log).
+    func saveSession(_ session: WorkoutSession) async throws
 
-    // MARK: Read
-
-    /// Fetch the entire exercise catalog, sorted alphabetically by name.
-    func fetchAll() async throws -> [Exercise]
-
-    /// Fetch a single exercise by its unique ID.
-    func fetch(byId id: UUID) async throws -> Exercise?
-
-    // MARK: Observe
-
-    /// Provide a live stream of the exercise catalog. Emits whenever the catalog changes.
-    func observeCatalog() -> AsyncThrowingStream<[Exercise], Error>
+    /// Append a *performed* set to an existing session. The repository will
+    /// either extend an existing exercise log or create one if it is the first
+    /// set for that exercise in the session.
+    func saveSet(
+        _ set: SetRecord,
+        forExercise exerciseId: UUID,
+        inSession sessionId: UUID
+    ) async throws
 }
 
-/// Errors that an `ExerciseRepository` can throw.
-public enum ExerciseRepositoryError: Error, Equatable {
+// MARK: – Error Namespace
+
+/// Domain errors surfaced by `WorkoutRepository` implementations.
+public enum WorkoutRepositoryError: Error, Equatable, Sendable {
+    /// Underlying persistence failed (I/O, validation, corruption, etc.).
     case persistenceFailed(underlying: Error)
-    case notFound
+    /// No session with the supplied identifier exists.
+    case sessionNotFound
+    /// Catch‑all for unrecoverable, unidentified failures.
     case unknown
-}
 
-// MARK: - In-Memory Implementation (for tests/debug)
+    // Manual `Equatable` ignoring non‑equatable `Error` associated values.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.sessionNotFound, .sessionNotFound), (.unknown, .unknown):
+            return true
+        case let (.persistenceFailed(lhsErr), .persistenceFailed(rhsErr)):
+            // Compare textual descriptions – sufficient for test equality.
+            return String(describing: lhsErr) == String(describing: rhsErr)
+        default:
+            return false
+        }
+    }
+}
 
 #if DEBUG
-/// In-memory implementation of `ExerciseRepository` for unit testing and debug builds.
-/// Uses an `actor` for thread-safe storage of exercise data.
-public final class InMemoryExerciseRepository: ExerciseRepository {
+// MARK: – Reference In‑Memory Implementation (DEBUG only)
+
+/// Non‑persisted store backed by a Swift `actor` for thread‑safety.
+/// Useful for unit tests, SwiftUI previews, and rapid prototyping. Swap this
+/// with a real database implementation for production builds.
+public final class InMemoryWorkoutRepository: WorkoutRepository {
+    // MARK: Actor Storage
+
     private actor Storage {
-        var items: [UUID: Exercise] = [:]
+        private var sessions: [UUID: WorkoutSession] = [:]
 
-        func insert(_ exercises: [Exercise]) {
-            for ex in exercises {
-                items[ex.id] = ex
+        func get(id: UUID) -> WorkoutSession? { sessions[id] }
+        func put(_ session: WorkoutSession) { sessions[session.id] = session }
+
+        func appendSet(
+            _ set: SetRecord,
+            exerciseId: UUID,
+            toSession sessionId: UUID
+        ) throws {
+            guard let existing = sessions[sessionId] else {
+                throw WorkoutRepositoryError.sessionNotFound
             }
-        }
 
-        func all() -> [Exercise] {
-            // Return exercises sorted by name
-            return items.values.sorted { $0.name < $1.name }
-        }
+            // Build a *new* immutable session because `WorkoutSession` fields
+            // have `private(set)` accessors. This avoids sneaky alias mutation
+            // and stays value‑semantic.
+            var updatedLogs = existing.exerciseLogs
+            if let index = updatedLogs.firstIndex(where: { $0.exerciseId == exerciseId }) {
+                var log = updatedLogs[index]
+                log.addSet(set)
+                updatedLogs[index] = log
+            } else {
+                let firstLog = ExerciseLog(
+                    exerciseId: exerciseId,
+                    performedSets: [set],
+                    perceivedExertion: nil,
+                    notes: nil,
+                    startTime: Date(),
+                    endTime: Date()
+                )
+                updatedLogs.append(firstLog)
+            }
 
-        func get(id: UUID) -> Exercise? {
-            return items[id]
+            let updatedSession = WorkoutSession(
+                id: existing.id,
+                date: existing.date,
+                exerciseLogs: updatedLogs,
+                startTime: existing.startTime,
+                endTime: Date(),
+                notes: existing.notes,
+                planId: existing.planId
+            )
+
+            sessions[sessionId] = updatedSession
         }
     }
+
+    // MARK: Life‑cycle
 
     private let storage = Storage()
-    private var continuation: AsyncThrowingStream<[Exercise], Error>.Continuation?
 
-    public init(seed: [Exercise] = []) {
-        // Seed initial data in the actor
+    /// - Parameter seed: Optional seed data for previews/tests.
+    public init(seed: [WorkoutSession] = []) {
         Task.detached { [storage] in
-            await storage.insert(seed)
+            for s in seed { await storage.put(s) }
         }
     }
 
-    public func save(_ exercises: [Exercise]) async throws {
-        await storage.insert(exercises)
-        // Notify observers of updated catalog
-        continuation?.yield(await storage.all())
+    // MARK: WorkoutRepository
+
+    public func session(id: UUID) async throws -> WorkoutSession? {
+        await storage.get(id: id)
     }
 
-    public func fetchAll() async throws -> [Exercise] {
-        return await storage.all()
+    public func saveSession(_ session: WorkoutSession) async throws {
+        await storage.put(session)
     }
 
-    public func fetch(byId id: UUID) async throws -> Exercise? {
-        return await storage.get(id: id)
-    }
-
-    public func observeCatalog() -> AsyncThrowingStream<[Exercise], Error> {
-        return AsyncThrowingStream { continuation in
-            self.continuation = continuation
-            // Emit current state immediately
-            Task {
-                continuation.yield(await storage.all())
-            }
-        }
+    public func saveSet(
+        _ set: SetRecord,
+        forExercise exerciseId: UUID,
+        inSession sessionId: UUID
+    ) async throws {
+        try await storage.appendSet(set, exerciseId: exerciseId, toSession: sessionId)
     }
 }
 #endif
