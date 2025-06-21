@@ -32,7 +32,8 @@ let package = Package(
             ],
             path: "Sources",
             resources: [
-                .process("SeedData")
+                .process("SeedData"),
+                .process("Model/GainzModel.xcdatamodeld")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency=complete"),
