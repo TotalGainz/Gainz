@@ -10,6 +10,7 @@
 //  Created on 27 May 2025.
 //
 
+#if canImport(CoreData) && canImport(Combine)
 import XCTest
 import Combine
 @testable import CorePersistence
@@ -131,3 +132,4 @@ final class CorePersistenceTests: XCTestCase {
         XCTAssertNil(orphanLog, "Cascade delete failed – ExerciseLog still exists")
     }
 }
+#endif

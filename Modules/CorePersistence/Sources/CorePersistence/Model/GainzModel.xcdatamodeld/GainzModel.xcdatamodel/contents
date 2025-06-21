@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22483" systemVersion="23A2049" minimumToolsVersion="Automatic" sourceLanguage="Swift">
+    <entity name="ExerciseEntity" representedClassName="ExerciseEntity" syncable="YES">
+        <attribute name="id" attributeType="UUID" optional="NO"/>
+        <attribute name="name" attributeType="String" optional="NO"/>
+        <attribute name="primaryMuscles" attributeType="Transformable" attributeValueClassName="NSArray" optional="NO"/>
+        <attribute name="secondaryMuscles" attributeType="Transformable" attributeValueClassName="NSArray" optional="NO"/>
+        <attribute name="mechanicalPattern" attributeType="String" optional="NO"/>
+        <attribute name="equipment" attributeType="String" optional="NO"/>
+        <attribute name="isUnilateral" attributeType="Boolean" optional="NO"/>
+    </entity>
+</model>

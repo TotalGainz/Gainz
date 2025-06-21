@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         // Internal domain schema
-        .package(path: "../Domain")
+        .package(path: "../../PlatformAgnostic/Domain")
         // External option: GRDB for server-side SQLite (disabled by default)
         // .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.5.0")
     ],
@@ -32,7 +32,8 @@ let package = Package(
             ],
             path: "Sources",
             resources: [
-                .process("SeedData")
+                .process("CorePersistence/SeedData"),
+                .process("CorePersistence/Model/GainzModel.xcdatamodeld")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency=complete"),

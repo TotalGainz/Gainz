@@ -13,7 +13,7 @@
 //
 //  Created for Gainz on 27 May 2025.
 //
-
+#if canImport(CoreData)
 import Foundation
 import CoreData
 
@@ -200,3 +200,4 @@ private struct ExerciseSeed: Decodable {
     let equipment: String
     let isUnilateral: Bool
 }
+#endif

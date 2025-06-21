@@ -8,11 +8,10 @@
 //  - Lightweight migration and schema consistency checks
 //
 //  Created for Gainz on 27 May 2025.
-//
 
+#if canImport(CoreData)
 import Foundation
 import CoreData
-
 #if canImport(UIKit)
 import UIKit  // Needed for UIApplication notifications in lifecycle observers
 #endif
@@ -141,3 +140,4 @@ extension LocalStorage {
         }
     }
 }
+#endif
