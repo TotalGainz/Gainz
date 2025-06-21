@@ -9,27 +9,6 @@
 
 import Foundation
 
-/// Minimal router contract used by tests.
-public protocol NavigationRouting {
-    func push(_ route: FeatureRoute, animated: Bool)
-}
-
-/// Simple enum representing app feature destinations.
-public struct FeatureRoute: Hashable {
-    public enum Kind {
-        case workoutLogger
-        // Other cases omitted for brevity
-    }
-
-    public var kind: Kind
-    public var payload: [String: Any] = [:]
-
-    public init(kind: Kind, payload: [String: Any] = [:]) {
-        self.kind = kind
-        self.payload = payload
-    }
-}
-
 /// Convenience wrapper used in tests to drive navigation to the
 /// Workout Logger from the Planner card.
 public struct FeatureEntryPlanner {

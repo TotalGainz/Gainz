@@ -35,7 +35,7 @@ final class FeatureInterfacesTests: XCTestCase {
             let payload = ["foo": "bar"]
 
             // When – encode ➜ URL
-            let url = try kind.makeURL(payload: payload)
+            let url = FeatureRoute(kind: kind, payload: payload).url()
 
             // Then – decode ➜ route
             let route = try FeatureRoute(url: url)
@@ -77,31 +77,3 @@ private struct MockNavigationRouter: NavigationRouting {
     }
 }
 
-// MARK: – Helpers (guard compile-time failures only)
-
-/// Extend FeatureKind with a minimal fixture API expected in tests.
-private extension FeatureKind {
-    /// Example identifier string for deep-link matching.
-    var identifier: String {
-        switch self {
-        case .home:           return "home"
-        case .planner:        return "planner"
-        case .workoutLogger:  return "workout_logger"
-        case .analytics:      return "analytics"
-        case .profile:        return "profile"
-        case .settings:       return "settings"
-        }
-    }
-
-    /// Serialises a payload into a deep-link URL.
-    func makeURL(payload: [String: Any]) throws -> URL {
-        var components       = URLComponents()
-        components.scheme     = "gainz"
-        components.host       = identifier
-        components.queryItems = payload.map { URLQueryItem(name: $0.key, value: "\($0.value)") }
-        guard let url = components.url else {
-            throw URLError(.badURL)
-        }
-        return url
-    }
-}
