@@ -25,7 +25,7 @@ let package = Package(
         .target(
             name: "CoreUI",
             dependencies: [],
-            path: "Sources",
+            path: "Sources/CoreUI",
             resources: [
                 .process("Resources")
             ],

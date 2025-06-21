@@ -56,11 +56,15 @@ public final class PlanMesocycleUseCaseImpl: PlanMesocycleUseCase {
         for muscle in MuscleGroup.allCases {
             volumeTargets[muscle] = baseVolume
         }
-        let planInput = PlanInput(weeks: goal.weeks,
-                                  daysPerWeek: daysPerWeek,
-                                  weeklyVolumeTargets: volumeTargets,
-                                  defaultRepRange: RepRange(min: 8, max: 12),
-                                  weeklyVolumeRamp: 0.05)
+        // Pre-validated rep range for hypertrophy focus (8–12 reps)
+        let repRange = try! RepRange(min: 8, max: 12)
+        let planInput = PlanInput(
+            weeks: goal.weeks,
+            daysPerWeek: daysPerWeek,
+            weeklyVolumeTargets: volumeTargets,
+            defaultRepRange: repRange,
+            weeklyVolumeRamp: 0.05
+        )
         // Generate the plan using the provided PlanGenerator
         return await planGenerator.makePlan(from: planInput)
     }

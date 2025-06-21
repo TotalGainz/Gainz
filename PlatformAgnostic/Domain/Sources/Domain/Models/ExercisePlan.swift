@@ -6,7 +6,10 @@ import Foundation
 ///
 /// An `ExercisePlan` defines the target sets and progression strategy for one exercise
 /// in a training plan. This is used to generate week-by-week prescriptions.
-public struct ExercisePlan: Identifiable, Hashable, Codable, Sendable {
+/// Describes a progression plan for a single exercise across a mesocycle.
+///
+/// Provides a lightweight initializer overloaded for test usage.
+public struct ExercisePlan: Identifiable, Sendable {
     // MARK: Core Fields
 
     /// Unique identifier for this exercise plan element.
@@ -25,6 +28,18 @@ public struct ExercisePlan: Identifiable, Hashable, Codable, Sendable {
     public let progression: ProgressionStrategy
     /// Optional coaching or technique notes for this exercise.
     public let coachingNotes: String?
+
+    // MARK: Derived Properties
+
+    /// Arithmetic mean of the rep range (midpoint of min and max), used for estimating volume.
+    public var averageReps: Double {
+        Double(repRange.min + repRange.max) / 2.0
+    }
+
+    /// Total planned reps = averageReps × sets. Useful for workload summaries.
+    public var plannedTotalReps: Int {
+        Int(averageReps * Double(sets))
+    }
 
     // MARK: Initialization
 
@@ -54,15 +69,36 @@ public struct ExercisePlan: Identifiable, Hashable, Codable, Sendable {
         self.progression = progression
         self.coachingNotes = coachingNotes
     }
+
+    /// Test‑only convenience initializer used in DomainModelTests.swift.
+    public init(exerciseId: UUID, sets: Int, repRange: RepRange) {
+        self.init(
+            id: UUID(),
+            exerciseId: exerciseId,
+            sets: sets,
+            repRange: repRange,
+            progression: DoubleProgression(repRange: repRange, loadIncrement: .kilograms(0)),
+            coachingNotes: nil
+        )
+    }
+}
+
+/// Errors thrown when initializing a `RepRange` with invalid bounds.
+public enum RepRangeError: Error {
+    /// Occurs when min is not positive or max is less than min.
+    case invalidBounds(min: Int, max: Int)
 }
 
 /// Defines a range of repetitions (e.g., 8–12 reps).
+/// Represents a closed range of allowed repetitions for an exercise.
 public struct RepRange: Hashable, Codable, Sendable {
     public let min: Int
     public let max: Int
 
-    public init(min: Int, max: Int) {
-        precondition(min > 0 && max >= min, "RepRange must have min > 0 and max >= min.")
+    public init(min: Int, max: Int) throws {
+        guard min > 0, max >= min else {
+            throw RepRangeError.invalidBounds(min: min, max: max)
+        }
         self.min = min
         self.max = max
     }

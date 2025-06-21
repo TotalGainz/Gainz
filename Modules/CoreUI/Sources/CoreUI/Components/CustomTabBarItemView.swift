@@ -10,6 +10,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Model
 
@@ -54,8 +57,10 @@ public struct CustomTabBarItemView: View {
         .animation(.easeInOut(duration: 0.18), value: isSelected)
         .onChange(of: isSelected) { selected in
             if selected {
-                // Subtle haptic feedback on selection
+                // Subtle haptic feedback on selection (iOS/tvOS only)
+                #if canImport(UIKit)
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                #endif
             }
         }
         .accessibilityLabel(item.title)
@@ -105,14 +110,25 @@ public struct CustomTabBarItemView: View {
     }
 }
 
-// MARK: - Preview
+// MARK: - SwiftUI Previews
 
-#Preview(traits: .fixedLayout(width: 160, height: 60)) {
+#if DEBUG
+/// Live preview of `CustomTabBarItemView` to validate layout, theming, and interaction.
+/// Uses fixed dimensions to isolate the component in Xcode Canvas.
+@available(iOS 17.0, tvOS 17.0, watchOS 10.0, macOS 14.0, *)
+#Preview("CustomTabBarItemView", traits: .fixedLayout(width: 160, height: 60)) {
     ZStack {
-        Color.black.ignoresSafeArea()
+        Color.surfaceElevated.ignoresSafeArea()
         HStack(spacing: 0) {
-            CustomTabBarItemView(item: TabItem(systemIconName: "house.fill", title: "Home"), isSelected: true)
-            CustomTabBarItemView(item: TabItem(systemIconName: "figure.walk", title: "Workouts"), isSelected: false)
+            CustomTabBarItemView(
+                item: TabItem(systemIconName: "house.fill", title: "Home"),
+                isSelected: true
+            )
+            CustomTabBarItemView(
+                item: TabItem(systemIconName: "figure.walk", title: "Workouts"),
+                isSelected: false
+            )
         }
     }
 }
+#endif

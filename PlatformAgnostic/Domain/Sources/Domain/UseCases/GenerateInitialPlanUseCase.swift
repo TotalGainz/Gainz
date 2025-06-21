@@ -7,7 +7,7 @@ import Foundation
 /// Use case for generating a brand-new initial training plan for a user based on onboarding inputs.
 public protocol GenerateInitialPlanUseCase: Sendable {
     /// Build an initial `MesocyclePlan` given the user's onboarding survey responses.
-    func execute(_ request: GenerateInitialPlanRequest) throws -> MesocyclePlan
+    func execute(_ request: GenerateInitialPlanRequest) async throws -> MesocyclePlan
 }
 
 // MARK: - Request DTO
@@ -40,15 +40,21 @@ public struct GenerateInitialPlanRequest: Hashable, Sendable {
 
 // MARK: - Default Implementation
 
-public final class GenerateInitialPlanUseCaseImpl: GenerateInitialPlanUseCase {
+/// Default implementation of `GenerateInitialPlanUseCase`.
+/// Performs initial split planning and deterministic exercise selection.
+public final class GenerateInitialPlanUseCaseImpl: GenerateInitialPlanUseCase, @unchecked Sendable {
     // Dependencies
     private let exerciseRepo: ExerciseRepository
-    private let uuidProvider: () -> UUID
-    private let rng: RandomNumberGenerator
+    /// Supplies unique identifiers for new plan elements; marked @Sendable for concurrency.
+    private let uuidProvider: @Sendable () -> UUID
+    /// Random number generator driving deterministic selection; mutated via inout in shuffle.
+    private var rng: any RandomNumberGenerator
 
-    public init(exerciseRepo: ExerciseRepository,
-                uuidProvider: @escaping () -> UUID = { UUID() },
-                randomSeed: UInt64? = nil) {
+    public init(
+        exerciseRepo: ExerciseRepository,
+        uuidProvider: @Sendable @escaping () -> UUID = { UUID() },
+        randomSeed: UInt64? = nil
+    ) {
         self.exerciseRepo = exerciseRepo
         if let seed = randomSeed {
             self.rng = SeededGenerator(seed: seed)
@@ -58,19 +64,21 @@ public final class GenerateInitialPlanUseCaseImpl: GenerateInitialPlanUseCase {
         self.uuidProvider = uuidProvider
     }
 
-    public func execute(_ request: GenerateInitialPlanRequest) throws -> MesocyclePlan {
-        // 1. Get all available exercises
-        let catalog = try awaitResult(execute: exerciseRepo.fetchAll())
+    public func execute(_ request: GenerateInitialPlanRequest) async throws -> MesocyclePlan {
+        // 1. Fetch all available exercises from repository
+        let catalog = try await exerciseRepo.fetchAll()
         // 2. Determine appropriate split pattern
         let splitFocuses = SplitPlanner.chooseSplit(frequency: request.weeklyFrequency,
                                                    experience: request.experience)
         // 3. Create one WorkoutPlan per day in the split
         var workouts: [WorkoutPlan] = []
         for (dayIndex, focus) in splitFocuses.enumerated() {
-            let exercises = ExerciseSelector.select(focus: focus,
-                                                    catalog: catalog,
-                                                    ownsBarbell: request.ownsBarbell,
-                                                    rng: rng)
+            let exercises = ExerciseSelector.select(
+                focus: focus,
+                catalog: catalog,
+                ownsBarbell: request.ownsBarbell,
+                rng: &rng
+            )
             workouts.append(WorkoutPlan(
                 id: uuidProvider(),
                 name: focus.displayName,
@@ -80,30 +88,15 @@ public final class GenerateInitialPlanUseCaseImpl: GenerateInitialPlanUseCase {
             ))
         }
         // 4. Assemble a MesocyclePlan (default 4 weeks for initial plan)
+        // Provide empty weekly summaries for initial plan; fill metrics later as needed.
+        let weekPlans = (0..<4).map { WeekPlan(index: $0, totalPlannedReps: 0) }
         return MesocyclePlan(
             objective: .hypertrophy,
-            weeks: 4,
+            weeks: weekPlans,
             workouts: workouts
         )
     }
 
-    // MARK: - Helper: Wrap async call into sync (since protocol is not async)
-
-    /// Utility to synchronously wait for an async operation (only used here to adapt to protocol signature).
-    private func awaitResult<T>(execute asyncFunc: @autoclosure () async throws -> T) throws -> T {
-        var result: Result<T, Error>!
-        let semaphore = DispatchSemaphore(value: 0)
-        Task {
-            do {
-                result = .success(try await asyncFunc())
-            } catch {
-                result = .failure(error)
-            }
-            semaphore.signal()
-        }
-        semaphore.wait()
-        return try result.get()
-    }
 
     // MARK: - Nested Helpers
 
@@ -131,23 +124,36 @@ public final class GenerateInitialPlanUseCaseImpl: GenerateInitialPlanUseCase {
 
     /// Selects specific exercises for a given day's focus.
     private enum ExerciseSelector {
-        static func select(focus: MuscleFocus,
-                           catalog: [Exercise],
-                           ownsBarbell: Bool,
-                           rng: RandomNumberGenerator) -> [ExercisePrescription] {
+        /// Selects exercises matching daily focus, shuffles them, and creates prescriptions.
+        static func select(
+            focus: MuscleFocus,
+            catalog: [Exercise],
+            ownsBarbell: Bool,
+            rng: inout any RandomNumberGenerator
+        ) -> [ExercisePrescription] {
             // Filter exercises matching the focus and equipment availability
             let filtered = catalog.filter { exercise in
                 focus.matches(exercise: exercise) &&
                 (ownsBarbell || exercise.equipment != .barbell)
             }
             // Shuffle and take up to 5 exercises for variety
-            let chosen = filtered.shuffled(using: rng).prefix(5)
+            let chosen = filtered.shuffled(using: &rng).prefix(5)
+
+            // Use a pre-validated rep range for generation (8–12 reps)
+            let defaultRepRange: RepRange = {
+                do {
+                    return try RepRange(min: 8, max: 12)
+                } catch {
+                    fatalError("Invalid default rep range: \(error)")
+                }
+            }()
+
             // Map to ExercisePrescription with default sets and rep range
-            return chosen.map {
+            return chosen.map { exercise in
                 ExercisePrescription(
-                    exerciseId: $0.id,
+                    exerciseId: exercise.id,
                     sets: 3,
-                    repRange: RepRange(min: 8, max: 12),
+                    repRange: defaultRepRange,
                     targetRIR: 1,
                     percent1RM: nil
                 )

@@ -56,6 +56,10 @@ public struct SetRecord: Identifiable, Hashable, Codable, Sendable {
 }
 
 /// Discrete values for RPE (Rate of Perceived Exertion) on a 1–10 scale.
-public enum RPE: Int, Codable, CaseIterable, Sendable {
+/// Discrete values for RPE (Rate of Perceived Exertion) on a 1–10 scale.
+public enum RPE: Int, Codable, CaseIterable, Sendable, CustomStringConvertible {
     case one = 1, two, three, four, five, six, seven, eight, nine, ten
+
+    /// Textual description combining the acronym and numeric value (e.g. "RPE 9").
+    public var description: String { "RPE \(rawValue)" }
 }

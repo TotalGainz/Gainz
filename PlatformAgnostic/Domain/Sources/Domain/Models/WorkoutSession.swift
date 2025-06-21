@@ -44,9 +44,13 @@ public struct WorkoutSession: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// Set of all muscle groups trained in this session.
+    ///
+    /// Derived from resolved `Exercise` entities via the `_exerciseResolver` hook.
+    /// Access to this property is actor-isolated to ensure thread-safety when using the resolver.
+    @MainActor
     public var musclesTrained: Set<MuscleGroup> {
         exerciseLogs.reduce(into: Set<MuscleGroup>()) { result, log in
-            if let exercise = _exerciseResolver?(log.exerciseId) {
+            if let exercise = WorkoutSession._exerciseResolver?(log.exerciseId) {
                 result.formUnion(exercise.allTargetedMuscles)
             }
         }
@@ -79,7 +83,8 @@ public struct WorkoutSession: Identifiable, Hashable, Codable, Sendable {
     // MARK: Internal (for Analytics support)
 
     /// Internal hook to resolve `Exercise` definitions from IDs when computing derived data.
-    internal static var _exerciseResolver: ((UUID) -> Exercise?)? = nil
+@MainActor
+internal static var _exerciseResolver: ((UUID) -> Exercise?)? = nil
 }
 
 extension WorkoutSession {

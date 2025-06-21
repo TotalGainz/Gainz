@@ -122,12 +122,14 @@ public struct TypographyPalette {
 
 /// EnvironmentKey for the current ColorPalette.
 /// By default, this is Gainz's standard dark-mode-first color palette.
+@preconcurrency
 private struct ColorPaletteKey: EnvironmentKey {
-    @MainActor static let defaultValue: ColorPalette = ColorPalette()
+    static let defaultValue: ColorPalette = ColorPalette()
 }
 
+@preconcurrency
 private struct TypographyKey: EnvironmentKey {
-    @MainActor static let defaultValue: TypographyPalette = TypographyPalette()
+    static let defaultValue: TypographyPalette = TypographyPalette()
 }
 
 public extension EnvironmentValues {

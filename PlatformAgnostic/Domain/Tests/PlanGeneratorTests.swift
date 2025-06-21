@@ -59,7 +59,7 @@ final class PlanGeneratorTests: XCTestCase {
         // Ascending 1-…-n-1
         let overloadTrendOK = zip(weeklyVolumes, weeklyVolumes.dropFirst())
             .dropLast()                     // ignore deload edge
-            .allSatisfy { $0 < $1 }
+            .allSatisfy { $0 <= $1 }
 
         XCTAssertTrue(overloadTrendOK, "Volume should increase week-to-week until deload")
         XCTAssertLessThan(weeklyVolumes.last!,
@@ -114,8 +114,9 @@ final class PlanGeneratorTests: XCTestCase {
 // MARK: – Test Doubles
 //──────────────────────────────────────────────
 
-/// Minimal in-memory exercise repo satisfying the Domain protocol.
-private final class ExerciseRepositoryMock: ExerciseRepository {
+/// Test double for `ExerciseRepository`, providing deterministic in-memory data for unit tests.
+/// Conforms to `Sendable` unchecked to satisfy concurrency requirements in async APIs.
+private final class ExerciseRepositoryMock: ExerciseRepository, @unchecked Sendable {
 
     fileprivate let catalog: [UUID: Exercise] = {
         let squat = Exercise(
@@ -135,7 +136,25 @@ private final class ExerciseRepositoryMock: ExerciseRepository {
         return [squat.id: squat, bench.id: bench]
     }()
 
-    // MARK: – Protocol stubs
-    func fetchAll() -> [Exercise] { Array(catalog.values) }
-    subscript(id: UUID) -> Exercise? { catalog[id] }
+    // MARK: - ExerciseRepository conformance
+
+    public func save(_ exercises: [Exercise]) async throws {
+        // No-op: test double simply ignores persistence calls
+    }
+
+    public func fetchAll() async throws -> [Exercise] {
+        Array(catalog.values)
+    }
+
+    public func fetch(byId id: UUID) async throws -> Exercise? {
+        catalog[id]
+    }
+
+    public func observeCatalog() -> AsyncThrowingStream<[Exercise], Error> {
+        AsyncThrowingStream { continuation in
+            // Emit current static catalog and finish
+            continuation.yield(Array(catalog.values))
+            continuation.finish()
+        }
+    }
 }

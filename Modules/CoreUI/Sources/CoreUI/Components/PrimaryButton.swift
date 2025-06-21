@@ -47,7 +47,9 @@ public struct PrimaryButtonStyle: ButtonStyle {
 public extension Button where Label == Text {
     /// Creates a full-width primary CTA button with the given title.
     /// (Avoids generic label inference by returning a concrete Button<Text>.)
-    static func primary<S: StringProtocol>(_ title: S, action: @escaping () -> Void) -> Button<Text> {
+    /// Creates a full-width primary CTA button with the given title.
+    /// Returns an opaque view conforming to primary style.
+    static func primary<S: StringProtocol>(_ title: S, action: @escaping () -> Void) -> some View {
         // Using the `title` initializer avoids a closure and clarifies the Label type.
         Button(title, action: action)
             .buttonStyle(.primary)

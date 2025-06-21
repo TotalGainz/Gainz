@@ -31,6 +31,17 @@ public enum ExerciseRepositoryError: Error, Equatable {
     case persistenceFailed(underlying: Error)
     case notFound
     case unknown
+
+    public static func == (lhs: ExerciseRepositoryError, rhs: ExerciseRepositoryError) -> Bool {
+        switch (lhs, rhs) {
+        case (.notFound, .notFound), (.unknown, .unknown):
+            return true
+        case let (.persistenceFailed(l), .persistenceFailed(r)):
+            return String(describing: l) == String(describing: r)
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - In-Memory Implementation (for tests/debug)
@@ -38,7 +49,7 @@ public enum ExerciseRepositoryError: Error, Equatable {
 #if DEBUG
 /// In-memory implementation of `ExerciseRepository` for unit testing and debug builds.
 /// Uses an `actor` for thread-safe storage of exercise data.
-public final class InMemoryExerciseRepository: ExerciseRepository {
+public final class InMemoryExerciseRepository: ExerciseRepository, @unchecked Sendable {
     private actor Storage {
         var items: [UUID: Exercise] = [:]
 

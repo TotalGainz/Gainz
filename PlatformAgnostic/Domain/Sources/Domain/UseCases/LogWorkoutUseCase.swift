@@ -10,8 +10,12 @@ public protocol LogWorkoutUseCase: Sendable {
     @discardableResult
     func beginSession(planId: UUID?, date: Date) async throws -> WorkoutSession
 
-    /// Log a new set into an existing session.
-    func logSet(_ set: SetRecord, toSessionWithID sessionId: UUID) async throws
+    /// Log a new set into an existing session under the specified exercise.
+    func logSet(
+        _ set: SetRecord,
+        forExercise exerciseId: UUID,
+        toSessionWithID sessionId: UUID
+    ) async throws
 
     /// Mark a session as ended (completed or abandoned) and finalize it.
     func endSession(_ sessionId: UUID, didAbandon: Bool) async throws
@@ -44,13 +48,20 @@ public final class DefaultLogWorkoutUseCase: LogWorkoutUseCase {
         return session
     }
 
-    public func logSet(_ set: SetRecord, toSessionWithID sessionId: UUID) async throws {
-        guard let session = try await workoutRepository.session(id: sessionId) else {
+    public func logSet(
+        _ set: SetRecord,
+        forExercise exerciseId: UUID,
+        toSessionWithID sessionId: UUID
+    ) async throws {
+        guard let _ = try await workoutRepository.session(id: sessionId) else {
             throw Error.sessionNotFound
         }
-        // Ensure session is still in progress if such a status is tracked (not explicitly modeled here).
-        // Append set via repository (which will handle grouping within the session).
-        try await workoutRepository.saveSet(set, forSessionID: sessionId)
+        // Append performed set to session, delegating exercise-log grouping to repository
+        try await workoutRepository.saveSet(
+            set,
+            forExercise: exerciseId,
+            inSession: sessionId
+        )
         // Track analytics event for a set being logged
         analyticsService.track(.setLogged(sessionId, set))
     }

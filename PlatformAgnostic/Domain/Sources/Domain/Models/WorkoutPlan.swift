@@ -46,6 +46,11 @@ public struct WorkoutPlan: Identifiable, Hashable, Codable, Sendable {
         self.dayOfWeek = dayOfWeek
         self.exercises = exercises
     }
+
+    /// Alias for tests: an alternative name for the exercises array.
+    public var exercisePlans: [ExercisePrescription] {
+        exercises
+    }
 }
 
 /// Immutable instruction set for a single exercise within a `WorkoutPlan` (prior to execution).

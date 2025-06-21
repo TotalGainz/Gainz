@@ -80,7 +80,7 @@ struct ColorPalette_Previews: PreviewProvider {
             Text("Primary").foregroundColor(.textPrimary)
             Text("Secondary").foregroundColor(.textSecondary)
             RoundedRectangle(cornerRadius: 12)
-                .fill(.brandHorizontal)
+                .fill(LinearGradient.brandHorizontal)
                 .frame(height: 44)
                 .overlay(Text("Gradient CTA").foregroundColor(.white))
         }

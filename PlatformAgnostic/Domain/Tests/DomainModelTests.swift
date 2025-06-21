@@ -38,7 +38,7 @@ final class DomainModelTests: XCTestCase {
     // MARK: – RepRange
 
     func testRepRangeCodableRoundTrip() throws {
-        let original = RepRange(min: 8, max: 12)
+        let original = try RepRange(min: 8, max: 12)
         let data = try JSONEncoder().encode(original)          // Codable round-trip  :contentReference[oaicite:1]{index=1}
         let decoded = try JSONDecoder().decode(RepRange.self, from: data)
 
@@ -47,11 +47,11 @@ final class DomainModelTests: XCTestCase {
 
     // MARK: – ExercisePlan
 
-    func testExercisePlanVolumeMath() {
+    func testExercisePlanVolumeMath() throws {
         let plan = ExercisePlan(
             exerciseId: UUID(),
             sets: 4,
-            repRange: RepRange(min: 8, max: 12)
+            repRange: try RepRange(min: 8, max: 12)
         )
 
         XCTAssertEqual(plan.averageReps, 10, accuracy: 0.1,

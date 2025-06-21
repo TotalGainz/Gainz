@@ -41,9 +41,9 @@ public struct CalculateAnalyticsUseCase {
         var volumePerMuscle: [MuscleGroup: Int] = [:]
         var tonnagePerMuscle: [MuscleGroup: Double] = [:]
         for set in allSets {
-            // Resolve exercise and its muscle groups
-            // (We'll use the WorkoutSession's internal resolver if set.exerciseId can map to an Exercise)
-            if let exercise = WorkoutSession._exerciseResolver?(set.id) {
+            // Resolve exercise on MainActor to respect actor isolation of the resolver hook
+            let maybeExercise: Exercise? = await MainActor.run { WorkoutSession._exerciseResolver?(set.id) }
+            if let exercise = maybeExercise {
                 let muscles = exercise.allTargetedMuscles
                 let reps = set.reps
                 let load = set.weight
