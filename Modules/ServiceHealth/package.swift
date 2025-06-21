@@ -19,7 +19,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "../Domain"),
+        .package(path: "../../PlatformAgnostic/Domain"),
         .package(path: "../CorePersistence")
     ],
     targets: [

@@ -20,7 +20,7 @@ let package = Package(
     ],
     dependencies: [
         // Internal model layer
-        .package(path: "../Domain"),
+        .package(path: "../../PlatformAgnostic/Domain"),
         // Combine helpers for reactive pipelines
         .package(url: "https://github.com/CombineCommunity/CombineExt.git", from: "1.5.0")
     ],

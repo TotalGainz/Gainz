@@ -25,7 +25,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "../Domain"),
+        .package(path: "../../PlatformAgnostic/Domain"),
         .package(path: "../CoreUI"),
         .package(path: "../ServiceHealth"),
         .package(path: "../AnalyticsService")
