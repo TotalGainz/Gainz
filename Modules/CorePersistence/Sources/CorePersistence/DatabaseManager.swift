@@ -73,9 +73,11 @@ public final class DatabaseManager: DatabaseManaging {
             // Update the entity's fields with the latest data.
             entity.id = exercise.id
             entity.name = exercise.name
-            entity.primaryMuscles = exercise.primaryMuscles.map { $0.rawValue }  // store as array of raw strings
-            entity.mechanicalPattern = exercise.mechanicalPattern.rawValue      // store enum as raw value
-            // (Note: Any other properties like secondaryMuscles, equipment, etc., would be set here if present in domain model.)
+            entity.primaryMuscles = exercise.primaryMuscles.map { $0.rawValue }
+            entity.secondaryMuscles = exercise.secondaryMuscles.map { $0.rawValue }
+            entity.mechanicalPattern = exercise.mechanicalPattern.rawValue
+            entity.equipment = exercise.equipment.rawValue
+            entity.isUnilateral = exercise.isUnilateral
 
             // Save changes if any fields were modified.
             try backgroundContext.saveIfNeeded()
@@ -152,16 +154,28 @@ private extension Exercise {
             let id = entity.id,
             let name = entity.name,
             let primaryRaw = entity.primaryMuscles as? [String],
+            let secondaryRaw = entity.secondaryMuscles as? [String],
             let mechRaw = entity.mechanicalPattern,
-            let mech = MechanicalPattern(rawValue: mechRaw)
+            let equipRaw = entity.equipment,
+            let mech = MechanicalPattern(rawValue: mechRaw),
+            let equip = Equipment(rawValue: equipRaw)
         else {
             return nil  // Abort if any field is missing or if mechanicalPattern is unrecognized
         }
 
-        // Map primaryRaw [String] to [MuscleGroup] enum values.
-        let primaryMuscles = primaryRaw.compactMap(MuscleGroup.init(rawValue:))
-        // Initialize the Exercise struct with these values.
-        self.init(id: id, name: name, primaryMuscles: primaryMuscles, mechanicalPattern: mech)
+        // Map string arrays to enum sets.
+        let primaryMuscles = Set(primaryRaw.compactMap(MuscleGroup.init(rawValue:)))
+        let secondaryMuscles = Set(secondaryRaw.compactMap(MuscleGroup.init(rawValue:)))
+
+        self.init(
+            id: id,
+            name: name,
+            primaryMuscles: primaryMuscles,
+            secondaryMuscles: secondaryMuscles,
+            mechanicalPattern: mech,
+            equipment: equip,
+            isUnilateral: entity.isUnilateral
+        )
     }
 }
 
