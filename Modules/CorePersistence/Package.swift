@@ -32,7 +32,7 @@ let package = Package(
             ],
             path: "Sources",
             resources: [
-                .process("CorePersistence/SeedData")
+                .process("SeedData")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency=complete"),
