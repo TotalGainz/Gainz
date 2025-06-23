@@ -1,0 +1,35 @@
+/*
+  Localizable.strings
+  Gainz
+
+  This file contains the base English localization strings for the Gainz app.
+*/
+
+/* App Display Name */
+"app.display_name" = "Gainz";
+
+/* Tab Bar Labels */
+"tab.home"       = "Home";
+"tab.planner"    = "Planner";
+"tab.workout"    = "Workout";
+"tab.analytics"  = "Analytics";
+"tab.profile"    = "Profile";
+
+/* Generic Actions */
+"button.start_workout" = "Start Workout";
+"button.add_workout"   = "Add Workout";
+
+/* Search Placeholder */
+"placeholder.search_exercise" = "Search exercises";
+
+/* Screen Titles */
+"title.week_view"  = "Week %d of %d";
+"title.welcome"    = "Welcome to Gainz";
+
+/* Accessibility */
+"accessibility.muscle_volume" = "%@ volume: %d sets";
+
+/* Confirmation Alerts */
+"alert.confirm_edit_plan" = "Editing mid-cycle can disrupt consistency. Continue?";
+"alert.ok"                = "OK";
+"alert.cancel"            = "Cancel";
