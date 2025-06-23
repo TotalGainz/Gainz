@@ -24,7 +24,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
         // Local workspace packages
-        .package(path: "../../PlatformAgnostic/Domain"),
+        .package(path: "../Domain"),
         .package(path: "../CorePersistence")
     ],
     targets: [

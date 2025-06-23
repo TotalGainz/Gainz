@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         // Internal domain schema
-        .package(path: "../../PlatformAgnostic/Domain")
+        .package(path: "../Domain")
         // External option: GRDB for server-side SQLite (disabled by default)
         // .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.5.0")
     ],
