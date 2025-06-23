@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         // Internal packages
-        .package(path: "../../PlatformAgnostic/Domain"),
+        .package(path: "../../Modules/Domain"),
         .package(path: "../../Modules/CoreUI"),
         .package(path: "../../Modules/ServiceHealth"),
         // External image caching library

@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../../Modules/CoreUI"),
-        .package(path: "../../PlatformAgnostic/Domain"),
+        .package(path: "../../Modules/Domain"),
         .package(path: "../../Modules/AnalyticsService"),
         .package(path: "../../Modules/FeatureInterfaces")
     ],
